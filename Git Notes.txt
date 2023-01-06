@@ -1,0 +1,337 @@
+
+
+
+
+Branch is essentially a ref to a commite 
+
+Tag is the same 
+
+
+Main is "usually" the Branch that all 'stable releases go' the default branch!
+
+
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets> git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        Git Notes.txt
+        MegaGunController/
+        UNOcan/
+
+nothing added to commit but untracked files present (use "git add" to track)
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets> dir
+
+
+    Directory: C:\Users\marqu\Projects\Simulink\rusty-pellets
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+da----          1/5/2023   7:45 PM                docs
+da----          1/5/2023   7:49 PM                MegaGunController
+da----        12/20/2022  11:16 PM                UNOcan
+-a----          1/5/2023   7:45 PM              6 .gitignore
+-a----          1/5/2023   7:02 PM            153 Git Notes.txt
+
+
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets> ls
+
+
+    Directory: C:\Users\marqu\Projects\Simulink\rusty-pellets
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+da----          1/5/2023   7:45 PM                docs
+da----          1/5/2023   7:49 PM                MegaGunController
+da----        12/20/2022  11:16 PM                UNOcan
+-a----          1/5/2023   7:45 PM              6 .gitignore
+-a----          1/5/2023   7:02 PM            153 Git Notes.txt
+
+
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets> ls -a
+Get-ChildItem : Parameter cannot be processed because the parameter name 'a' is
+ambiguous. Possible matches include: -Attributes -Directory -File -Hidden -ReadOnly
+-System.
+At line:1 char:4
++ ls -a
++    ~~
+    + CategoryInfo          : InvalidArgument: (:) [Get-ChildItem], ParameterBindingExce
+   ption
+    + FullyQualifiedErrorId : AmbiguousParameter,Microsoft.PowerShell.Commands.GetChildI
+   temCommand
+
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets> git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        Git Notes.txt
+        MegaGunController/
+        UNOcan/
+
+nothing added to commit but untracked files present (use "git add" to track)
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets>
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets>
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets>
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets>
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets>
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets> git checkout -b feature/arduino_controller
+Switched to a new branch 'feature/arduino_controller'
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets> git status
+On branch feature/arduino_controller
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        Git Notes.txt
+        MegaGunController/
+        UNOcan/
+
+nothing added to commit but untracked files present (use "git add" to track)
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets> git add '.\Git Notes.txt'
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets> git add .\MegaGunController\
+warning: in the working copy of 'MegaGunController/resources/project/Project.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/ProjectData.type.Info.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/artifact.type.Label.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/convenience.type.Label.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/derived.type.Label.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/design.type.Label.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/none.type.Label.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/other.type.Label.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/test.type.Label.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/Root.type.EntryPoints/e2de2be4-0e62-4462-b785-82a3a554f240.type.EntryPoint.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/Root.type.Files/GunControllerMega.slx.type.File.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/Root.type.Files/Library.type.File.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/Root.type.Files/Library.type.File/1.type.DIR_SIGNIFIER.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/Root.type.Files/Library.type.File/ScaleOneEighty.slx.type.File.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/Root.type.Files/Parameters.m.type.File.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/Root.type.ProjectPath/fc7d6161-323b-4a30-93f3-905b99ea517b.type.Reference.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/resources/project/uuid-9a2a097e-7412-495d-8ad4-2b66bfb6d5e6.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MegaGunController/slprj/sl_proj.tmw', LF will be replaced by CRLF the next time Git touches it
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets> git status
+On branch feature/arduino_controller
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        new file:   Git Notes.txt
+        new file:   MegaGunController/GunController.prj
+        new file:   MegaGunController/GunControllerMega.eep
+        new file:   MegaGunController/GunControllerMega.elf
+        new file:   MegaGunController/GunControllerMega.hex
+        new file:   MegaGunController/GunControllerMega.slx
+        new file:   MegaGunController/GunControllerMega.slx.original
+        new file:   MegaGunController/GunControllerMega.slxc
+        new file:   MegaGunController/GunControllerMega_ert_rtw/GunControllerMega.mk
+        new file:   MegaGunController/GunControllerMega_ert_rtw/GunControllerMega_targ_data_map.m
+        new file:   MegaGunController/GunControllerMega_ert_rtw/MW_ArduinoCAN.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/MW_ArduinoHWInit.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/MW_PWMDriver.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/MW_SPIwriteRead.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/MW_arduino_digitalio.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/arduinoAVRScheduler.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/buildInfo.mat
+        new file:   MegaGunController/GunControllerMega_ert_rtw/codedescriptor.dmr
+        new file:   MegaGunController/GunControllerMega_ert_rtw/daemon_checksum.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/ext_svr_daemon.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/ext_work.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/io_wrappers.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/rtGetInf.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/rtGetNaN.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/rt_nonfinite.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/rtiostream_interface.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/rtiostream_serial_daemon.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/rtiostream_utils.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/rtw_proj.tmw
+        new file:   MegaGunController/GunControllerMega_ert_rtw/tmwinternal/simulink_cache.xml
+        new file:   MegaGunController/GunControllerMega_ert_rtw/updown.o
+        new file:   MegaGunController/Library/ScaleOneEighty.slx
+        new file:   MegaGunController/Parameters.m
+        new file:   MegaGunController/SandboxInputPorcessing.slx
+        new file:   MegaGunController/SandboxInputPorcessing.slxc
+        new file:   MegaGunController/resources/project/Project.xml
+        new file:   MegaGunController/resources/project/ProjectData.type.Info.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/artifact.type.Label.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/convenience.type.Label.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/derived.type.Label.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/design.type.Label.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/none.type.Label.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/other.type.Label.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/test.type.Label.xml
+        new file:   MegaGunController/resources/project/Root.type.EntryPoints/e2de2be4-0e62-4462-b785-82a3a554f240.type.EntryPoint.xml
+        new file:   MegaGunController/resources/project/Root.type.Files/GunControllerMega.slx.type.File.xml
+        new file:   MegaGunController/resources/project/Root.type.Files/Library.type.File.xml
+        new file:   MegaGunController/resources/project/Root.type.Files/Library.type.File/1.type.DIR_SIGNIFIER.xml
+        new file:   MegaGunController/resources/project/Root.type.Files/Library.type.File/ScaleOneEighty.slx.type.File.xml
+        new file:   MegaGunController/resources/project/Root.type.Files/Parameters.m.type.File.xml
+        new file:   MegaGunController/resources/project/Root.type.ProjectPath/fc7d6161-323b-4a30-93f3-905b99ea517b.type.Reference.xml
+        new file:   MegaGunController/resources/project/uuid-9a2a097e-7412-495d-8ad4-2b66bfb6d5e6.xml
+        new file:   MegaGunController/slprj/ert/GunControllerMega/tmwinternal/CompileInfo.xml
+        new file:   MegaGunController/slprj/ert/GunControllerMega/tmwinternal/binfo.mat
+        new file:   MegaGunController/slprj/ert/GunControllerMega/tmwinternal/minfo.mat
+        new file:   MegaGunController/slprj/ert/_sharedutils/shared_file.dmr
+        new file:   MegaGunController/slprj/sim/varcache/GunControllerMega/checksumOfCache.mat
+        new file:   MegaGunController/slprj/sim/varcache/GunControllerMega/tmwinternal/simulink_cache.xml
+        new file:   MegaGunController/slprj/sim/varcache/GunControllerMega/varInfo.mat
+        new file:   MegaGunController/slprj/sim/varcache/SandboxInputPorcessing/checksumOfCache.mat
+        new file:   MegaGunController/slprj/sim/varcache/SandboxInputPorcessing/tmwinternal/simulink_cache.xml
+        new file:   MegaGunController/slprj/sim/varcache/SandboxInputPorcessing/varInfo.mat
+        new file:   MegaGunController/slprj/sl_proj.tmw
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        UNOcan/
+
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets> git add .\UNOcan\
+warning: in the working copy of 'UNOcan/resources/project/Project.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'UNOcan/resources/project/ProjectData.type.Info.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category/artifact.type.Label.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category/convenience.type.Label.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category/derived.type.Label.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category/design.type.Label.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category/none.type.Label.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category/other.type.Label.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category/test.type.Label.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'UNOcan/resources/project/uuid-2f9a6c9a-75d6-4d51-85c8-b07332875ef8.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'UNOcan/slprj/sl_proj.tmw', LF will be replaced by CRLF the next time Git touches it
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets> git status
+On branch feature/arduino_controller
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        new file:   Git Notes.txt
+        new file:   MegaGunController/GunController.prj
+        new file:   MegaGunController/GunControllerMega.eep
+        new file:   MegaGunController/GunControllerMega.elf
+        new file:   MegaGunController/GunControllerMega.hex
+        new file:   MegaGunController/GunControllerMega.slx
+        new file:   MegaGunController/GunControllerMega.slx.original
+        new file:   MegaGunController/GunControllerMega.slxc
+        new file:   MegaGunController/GunControllerMega_ert_rtw/GunControllerMega.mk
+        new file:   MegaGunController/GunControllerMega_ert_rtw/GunControllerMega_targ_data_map.m
+        new file:   MegaGunController/GunControllerMega_ert_rtw/MW_ArduinoCAN.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/MW_ArduinoHWInit.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/MW_PWMDriver.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/MW_SPIwriteRead.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/MW_arduino_digitalio.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/arduinoAVRScheduler.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/buildInfo.mat
+        new file:   MegaGunController/GunControllerMega_ert_rtw/codedescriptor.dmr
+        new file:   MegaGunController/GunControllerMega_ert_rtw/daemon_checksum.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/ext_svr_daemon.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/ext_work.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/io_wrappers.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/rtGetInf.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/rtGetNaN.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/rt_nonfinite.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/rtiostream_interface.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/rtiostream_serial_daemon.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/rtiostream_utils.o
+        new file:   MegaGunController/GunControllerMega_ert_rtw/rtw_proj.tmw
+        new file:   MegaGunController/GunControllerMega_ert_rtw/tmwinternal/simulink_cache.xml
+        new file:   MegaGunController/GunControllerMega_ert_rtw/updown.o
+        new file:   MegaGunController/Library/ScaleOneEighty.slx
+        new file:   MegaGunController/Parameters.m
+        new file:   MegaGunController/SandboxInputPorcessing.slx
+        new file:   MegaGunController/SandboxInputPorcessing.slxc
+        new file:   MegaGunController/resources/project/Project.xml
+        new file:   MegaGunController/resources/project/ProjectData.type.Info.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/artifact.type.Label.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/convenience.type.Label.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/derived.type.Label.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/design.type.Label.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/none.type.Label.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/other.type.Label.xml
+        new file:   MegaGunController/resources/project/Root.type.Categories/FileClassCategory.type.Category/test.type.Label.xml
+        new file:   MegaGunController/resources/project/Root.type.EntryPoints/e2de2be4-0e62-4462-b785-82a3a554f240.type.EntryPoint.xml
+        new file:   MegaGunController/resources/project/Root.type.Files/GunControllerMega.slx.type.File.xml
+        new file:   MegaGunController/resources/project/Root.type.Files/Library.type.File.xml
+        new file:   MegaGunController/resources/project/Root.type.Files/Library.type.File/1.type.DIR_SIGNIFIER.xml
+        new file:   MegaGunController/resources/project/Root.type.Files/Library.type.File/ScaleOneEighty.slx.type.File.xml
+        new file:   MegaGunController/resources/project/Root.type.Files/Parameters.m.type.File.xml
+        new file:   MegaGunController/resources/project/Root.type.ProjectPath/fc7d6161-323b-4a30-93f3-905b99ea517b.type.Reference.xml
+        new file:   MegaGunController/resources/project/uuid-9a2a097e-7412-495d-8ad4-2b66bfb6d5e6.xml
+        new file:   MegaGunController/slprj/ert/GunControllerMega/tmwinternal/CompileInfo.xml
+        new file:   MegaGunController/slprj/ert/GunControllerMega/tmwinternal/binfo.mat
+        new file:   MegaGunController/slprj/ert/GunControllerMega/tmwinternal/minfo.mat
+        new file:   MegaGunController/slprj/ert/_sharedutils/shared_file.dmr
+        new file:   MegaGunController/slprj/sim/varcache/GunControllerMega/checksumOfCache.mat
+        new file:   MegaGunController/slprj/sim/varcache/GunControllerMega/tmwinternal/simulink_cache.xml
+        new file:   MegaGunController/slprj/sim/varcache/GunControllerMega/varInfo.mat
+        new file:   MegaGunController/slprj/sim/varcache/SandboxInputPorcessing/checksumOfCache.mat
+        new file:   MegaGunController/slprj/sim/varcache/SandboxInputPorcessing/tmwinternal/simulink_cache.xml
+        new file:   MegaGunController/slprj/sim/varcache/SandboxInputPorcessing/varInfo.mat
+        new file:   MegaGunController/slprj/sl_proj.tmw
+        new file:   UNOcan/ArduinoMegaCANmainController.slx.autosave
+        new file:   UNOcan/GunControllerMega.eep
+        new file:   UNOcan/GunControllerMega.elf
+        new file:   UNOcan/GunControllerMega.hex
+        new file:   UNOcan/GunControllerMega.slxc
+        new file:   UNOcan/GunControllerMega_ert_rtw/GunControllerMega.mk
+        new file:   UNOcan/GunControllerMega_ert_rtw/MW_ArduinoCAN.o
+        new file:   UNOcan/GunControllerMega_ert_rtw/MW_ArduinoHWInit.o
+        new file:   UNOcan/GunControllerMega_ert_rtw/MW_PWMDriver.o
+        new file:   UNOcan/GunControllerMega_ert_rtw/MW_SPIwriteRead.o
+        new file:   UNOcan/GunControllerMega_ert_rtw/MW_arduino_digitalio.o
+        new file:   UNOcan/GunControllerMega_ert_rtw/arduinoAVRScheduler.o
+        new file:   UNOcan/GunControllerMega_ert_rtw/buildInfo.mat
+        new file:   UNOcan/GunControllerMega_ert_rtw/codedescriptor.dmr
+        new file:   UNOcan/GunControllerMega_ert_rtw/io_wrappers.o
+        new file:   UNOcan/GunControllerMega_ert_rtw/rtGetInf.o
+        new file:   UNOcan/GunControllerMega_ert_rtw/rtGetNaN.o
+        new file:   UNOcan/GunControllerMega_ert_rtw/rt_nonfinite.o
+        new file:   UNOcan/GunControllerMega_ert_rtw/rtw_proj.tmw
+        new file:   UNOcan/GunControllerMega_ert_rtw/tmwinternal/simulink_cache.xml
+        new file:   UNOcan/UNOcan.prj
+        new file:   UNOcan/arduino_CAN_transmit.eep
+        new file:   UNOcan/arduino_CAN_transmit.elf
+        new file:   UNOcan/arduino_CAN_transmit.hex
+        new file:   UNOcan/arduino_CAN_transmit.slx
+        new file:   UNOcan/arduino_CAN_transmit.slx.original
+        new file:   UNOcan/arduino_CAN_transmit.slxc
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/ArduinoPinHandleMap.o
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/MW_AnalogInput.o
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/MW_ArduinoCAN.o
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/MW_ArduinoHWInit.o
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/MW_PWM.o
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/MW_PWMDriver.o
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/MW_SPIwriteRead.o
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/MW_arduino_digitalio.o
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/arduinoAVRScheduler.o
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/arduino_CAN_transmit.mk
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/buildInfo.mat
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/codedescriptor.dmr
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/io_wrappers.o
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/rtGetInf.o
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/rtGetNaN.o
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/rt_nonfinite.o
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/rtw_proj.tmw
+        new file:   UNOcan/arduino_CAN_transmit_ert_rtw/tmwinternal/simulink_cache.xml
+        new file:   UNOcan/resources/project/Project.xml
+        new file:   UNOcan/resources/project/ProjectData.type.Info.xml
+        new file:   UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category.xml
+        new file:   UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category/artifact.type.Label.xml
+        new file:   UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category/convenience.type.Label.xml
+        new file:   UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category/derived.type.Label.xml
+        new file:   UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category/design.type.Label.xml
+        new file:   UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category/none.type.Label.xml
+        new file:   UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category/other.type.Label.xml
+        new file:   UNOcan/resources/project/Root.type.Categories/FileClassCategory.type.Category/test.type.Label.xml
+        new file:   UNOcan/resources/project/uuid-2f9a6c9a-75d6-4d51-85c8-b07332875ef8.xml
+        new file:   UNOcan/slprj/ert/GunControllerMega/tmwinternal/CompileInfo.xml
+        new file:   UNOcan/slprj/ert/GunControllerMega/tmwinternal/binfo.mat
+        new file:   UNOcan/slprj/ert/GunControllerMega/tmwinternal/minfo.mat
+        new file:   UNOcan/slprj/ert/_sharedutils/shared_file.dmr
+        new file:   UNOcan/slprj/ert/arduino_CAN_transmit/tmwinternal/CompileInfo.xml
+        new file:   UNOcan/slprj/ert/arduino_CAN_transmit/tmwinternal/binfo.mat
+        new file:   UNOcan/slprj/ert/arduino_CAN_transmit/tmwinternal/minfo.mat
+        new file:   UNOcan/slprj/sim/varcache/GunControllerMega/checksumOfCache.mat
+        new file:   UNOcan/slprj/sim/varcache/GunControllerMega/tmwinternal/simulink_cache.xml
+        new file:   UNOcan/slprj/sim/varcache/GunControllerMega/varInfo.mat
+        new file:   UNOcan/slprj/sl_proj.tmw
+
+PS C:\Users\marqu\Projects\Simulink\rusty-pellets>
+
