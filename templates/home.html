@@ -27,6 +27,17 @@
     </form>
 
 
+    <div class="fx">
+      <div>
+	<textarea rows="5" name="test-target" id="test-target"></textarea>
+	<button type="button" name="btn-reset" id="btn-reset">Reset</button>
+      </div>
+      <div class="flex">
+	<pre id="console-log"></pre>
+      </div>
+    </div>
+      
+
 {% endblock content %}
 
 
@@ -58,6 +69,29 @@
 
   socket.addEventListener('error', function(m) { log("error") });
 		     
+
+  let textarea = document.getElementById('test-target'),
+      consoleLog = document.getElementById('console-log'),
+      btnReset = document.getElementById('btn-reset');
+  
+  function logMessage(message) {
+      consoleLog.innerHTML += `${message}<br>`;
+  }
+
+  function send_key_to_server(e) {
+      socket.send(`key event: "${e.key}"`);
+  }
+
+  // todo: filter out which keys we actually want to send. 
+  textarea.addEventListener('keydown', (e) => {
+      if (!e.repeat) {
+	  logMessage(`key "${e.key}" pressed [event: keydown]`);
+	  send_key_to_server(e);
+      } else {
+	  logMessage(`key "${e.key}" repeating [event: keydown]`);
+      }
+  });
+
 
 </script>
 
