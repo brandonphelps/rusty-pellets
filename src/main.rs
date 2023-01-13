@@ -19,7 +19,6 @@ async fn home() -> HomeTemplate {
 }
 
 async fn handle_socket(mut socket: WebSocket) {
-    println!("Handling some socket");
     while let Some(Ok(msg)) = socket.recv().await {
         if let Message::Text(msg) = msg {
             if socket
@@ -35,7 +34,6 @@ async fn handle_socket(mut socket: WebSocket) {
 
 
 async fn websocket_test(ws: WebSocketUpgrade, Query(query): Query<HashMap<String, String>>) -> Response {
-    println!("Got websocket upgrade request: {:?}", query);
     ws.on_upgrade(handle_socket)
 }
 
