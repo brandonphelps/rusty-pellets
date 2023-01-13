@@ -19,6 +19,7 @@ async fn home() -> HomeTemplate {
 }
 
 async fn handle_socket(mut socket: WebSocket) {
+    println!("Handling some socket");
     while let Some(Ok(msg)) = socket.recv().await {
         if let Message::Text(msg) = msg {
             if socket
@@ -54,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = Router::new()
         .route("/", get(home))
-        .route("/soc", get(websocket_test));
+        .route("/ws", get(websocket_test));
 
     axum::Server::bind(&"0.0.0.0:3000".parse()?)
         .serve(app.into_make_service())
