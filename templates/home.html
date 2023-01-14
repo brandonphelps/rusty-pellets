@@ -53,7 +53,8 @@
   };
 
   socket.onmessage = function(e) {
-      logMessage(e);
+      console.log("Got a message: " + e.data);
+      logMessage(e.data);
   };
 
   var form = document.getElementById('form');
@@ -68,7 +69,6 @@
   });
 
   socket.addEventListener('error', function(m) { logMessage("error: " + m) });
-		     
 
   let textarea = document.getElementById('test-target'),
       consoleLog = document.getElementById('console-log'),

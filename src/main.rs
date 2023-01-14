@@ -10,9 +10,14 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::get,
-    Extension, Router, body::{Full, Bytes},
+    Extension, Router,
 };
+
+use futures::{sink::SinkExt, stream::{StreamExt, SplitSink, SplitStream}};
+
 use tokio::sync::Mutex;
+
+
 
 // use futures_util::{future, StreamExt, TryStreamExt};
 #[derive(Template)]
@@ -51,42 +56,56 @@ impl TestController {
 async fn handle_socket(mut socket: WebSocket, state: Arc<Mutex<AppState>>) {
     println!("Do Handle socket stuff");
 
+    let (mut sender, mut receiver) = socket.split();
+
     let (tx, mut rx) = tokio::sync::mpsc::channel(100);
 
-    // this is done so that we can continue doing processing
-    // from the server controller without waiting for messages
-    // to be sent from the client.
+    // this spins up a "background worker"
+    // that will take messages from the websocket and push them
+    // into a queue so that the Controller is able to process
+    // the messages asyncorniously 
     tokio::spawn(async move {
-        while let Some(Ok(msg)) = socket.recv().await {
-            if let Message::Text(msg) = msg {
-
-                tx.send(msg.clone()).await.unwrap();
-
-                if socket
-                    .send(Message::Text(format!("You said: {msg}")))
-                    .await
-                    .is_err()
-                {
-                    break;
+        println!("Blah: {:?}", receiver);
+        while let Some(Ok(msg)) = receiver.next().await {
+            if let Message::Text(msg) = msg { 
+                match tx.send(msg.clone()).await {
+                    Ok(_) => { },
+                    Err(e) => println!("Failed to send message: {:?}", e)
                 }
             }
         }
+
+        // while let Some(Ok(msg)) = receiver.recv().await {
+        //     if let Message::Text(msg) = msg {
+        //         tx.send(msg.clone()).await.unwrap();
+        //         // if socket
+        //         //     .send(Message::Text(format!("You said: {msg}")))
+        //         //     .await
+        //         //     .is_err()
+        //         // {
+        //         //     break;
+        //         // }
+        //     }
+        // }
     });
 
-    println!("waiting at recv q");
+
+    // This is the main update loop for the controller.
+    // basically this gets called every so often and allows
+    // for the controller to respond to events coming from
+    // the arduino, rather than relying on messages sent from the client. 
     loop {
         let f = rx.try_recv();
-        println!(" got= {:?}", f);
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        tokio::time::sleep(Duration::from_millis(100)).await;
         match f {
             Ok(e) => {
-                if e.contains("e") {
-                    state.lock().await.handle_message(&e);
-                    break;
-                }
-            }
+                println!("got: {}", e);
+                let response = state.lock().await.handle_message(&e);
+                println!("Exiting from loop");
+                sender.send(Message::Text(response)).await.unwrap();
+            },
             Err(_) => {
-                println!("No message currently");
+                // println!("No message currently");
             }
         }
     }
@@ -98,9 +117,16 @@ struct AppState {
 }
 
 impl AppState {
-    pub fn handle_message(&mut self, msg: &str) {
+
+    /// Update function that should be called at a specified rate. 
+    pub fn update(&mut self) -> String {
+        todo!()
+    }
+
+    pub fn handle_message(&mut self, msg: &str) -> String {
         println!("AppState got a message: {}", msg);
         self.client_connected = false;
+        "hello".into()
     }
 }
 
