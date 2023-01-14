@@ -79,7 +79,25 @@
   }
 
   function send_key_to_server(e) {
-      socket.send(`key event: "${e.key}"`);
+      // todo: create a key map that a user can set the keys with
+      let key = {'t': 'Servo', 'c': {'t': 'Left'}};
+      if (e.key == 'w') {
+	  key.c.t = 'Up';
+      }
+      else if (e.key == 'd') {
+	  key.c.t = 'Right';
+      }
+      else if (e.key == 'a') {
+	  key.c.t = 'Left';
+      }
+      else if (e.key == 's') {
+	  key.c.t = 'Down';
+      } else {
+	  // no valid key reject
+	  // todo: display message to  user?
+	  return;
+      }
+      socket.send(JSON.stringify(key));
   }
 
   // todo: filter out which keys we actually want to send. 

@@ -759,6 +759,8 @@ dependencies = [
  "axum-core",
  "futures",
  "futures-util",
+ "serde",
+ "serde_json",
  "tokio",
  "tokio-postgres",
  "tokio-tungstenite",

@@ -15,6 +15,7 @@ use axum::{
 
 use futures::{sink::SinkExt, stream::{StreamExt, SplitSink, SplitStream}};
 
+use serde::{Serialize, Deserialize};
 use tokio::sync::Mutex;
 
 
@@ -53,11 +54,28 @@ impl TestController {
     }
 }
 
-async fn handle_socket(mut socket: WebSocket, state: Arc<Mutex<AppState>>) {
-    println!("Do Handle socket stuff");
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag="t", content="c")]
+enum ControllerInput {
+    Left,
+    Right,
+    Up,
+    Down,
+}
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag="t", content="c")]
+enum CommandInput {
+    // inputs passed to the controller for movement etc. 
+    Servo(ControllerInput),
+    Disconnect,
+}
+
+
+// handle_socket currently expects to only be called once per client
+// if called twice without the client disconnecting things could get wonky. 
+async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
     let (mut sender, mut receiver) = socket.split();
-
     let (tx, mut rx) = tokio::sync::mpsc::channel(100);
 
     // this spins up a "background worker"
@@ -65,7 +83,6 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<Mutex<AppState>>) {
     // into a queue so that the Controller is able to process
     // the messages asyncorniously 
     tokio::spawn(async move {
-        println!("Blah: {:?}", receiver);
         while let Some(Ok(msg)) = receiver.next().await {
             if let Message::Text(msg) = msg { 
                 match tx.send(msg.clone()).await {
@@ -74,19 +91,6 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<Mutex<AppState>>) {
                 }
             }
         }
-
-        // while let Some(Ok(msg)) = receiver.recv().await {
-        //     if let Message::Text(msg) = msg {
-        //         tx.send(msg.clone()).await.unwrap();
-        //         // if socket
-        //         //     .send(Message::Text(format!("You said: {msg}")))
-        //         //     .await
-        //         //     .is_err()
-        //         // {
-        //         //     break;
-        //         // }
-        //     }
-        // }
     });
 
 
@@ -99,10 +103,11 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<Mutex<AppState>>) {
         tokio::time::sleep(Duration::from_millis(100)).await;
         match f {
             Ok(e) => {
-                println!("got: {}", e);
-                let response = state.lock().await.handle_message(&e);
-                println!("Exiting from loop");
-                sender.send(Message::Text(response)).await.unwrap();
+                let command: Result<CommandInput, serde_json::Error> = serde_json::from_str(&e);
+                if let Ok(c) = command {
+                    let response = state.lock().await.handle_command(c);
+                    sender.send(Message::Text(response)).await.unwrap();
+                }
             },
             Err(_) => {
                 // println!("No message currently");
@@ -119,13 +124,18 @@ struct AppState {
 impl AppState {
 
     /// Update function that should be called at a specified rate. 
+    // used for updating the client or getting the current state of stuff. 
     pub fn update(&mut self) -> String {
         todo!()
     }
 
-    pub fn handle_message(&mut self, msg: &str) -> String {
-        println!("AppState got a message: {}", msg);
-        self.client_connected = false;
+    pub fn handle_command(&mut self, msg: CommandInput) -> String {
+        match msg {
+            CommandInput::Servo(command) => {
+                println!("Command: {:?}", command);
+            },
+            CommandInput::Disconnect => self.client_connected = false
+        }
         "hello".into()
     }
 }
@@ -172,4 +182,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_command_serde() {
+        let f = CommandInput::Servo(ControllerInput::Left);
+        let expected_output = r#"{"t":"Servo","c":{"t":"Left"}}"#;
+        let k = serde_json::to_string(&f).unwrap();
+        assert_eq!(k, expected_output);
+
+        let f = CommandInput::Servo(ControllerInput::Right);
+        let expected_output = r#"{"t":"Servo","c":{"t":"Right"}}"#;
+        let k = serde_json::to_string(&f).unwrap();
+        assert_eq!(k, expected_output);
+    }
 }
