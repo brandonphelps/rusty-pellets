@@ -13,12 +13,18 @@ use axum::{
     Extension, Router,
 };
 
-use futures::{sink::SinkExt, stream::{StreamExt, SplitSink, SplitStream}};
+use futures::{
+    sink::SinkExt,
+    stream::StreamExt,
+};
 
-use serde::{Serialize, Deserialize};
+
+use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
+mod can;
 
+use can::CANMessage;
 
 // use futures_util::{future, StreamExt, TryStreamExt};
 #[derive(Template)]
@@ -31,31 +37,46 @@ async fn home() -> HomeTemplate {
 
 enum ControllerError {}
 
-struct TestController {}
+struct TestController {
+    handle: can::CANHandle,
+}
 
 impl TestController {
     pub fn up(&mut self) -> Result<(), ControllerError> {
         println!("up");
+        let response = self.handle.write(&CANMessage::new(0x200, &[0x0], false));
         Ok(())
     }
 
     pub fn down(&mut self) -> Result<(), ControllerError> {
         println!("down");
+        let response = self.handle.write(&CANMessage::new(0x200, &[0x3], false));
         Ok(())
     }
     pub fn left(&mut self) -> Result<(), ControllerError> {
         println!("left");
+        let response = self.handle.write(&CANMessage::new(0x200, &[0x2], false));
         Ok(())
     }
 
     pub fn right(&mut self) -> Result<(), ControllerError> {
         println!("right");
+        let response = self.handle.write(&CANMessage::new(0x200, &[0x1], false));
         Ok(())
+    }
+
+    pub fn handle_command(&mut self, command: ControllerInput) {
+        match command {
+            ControllerInput::Left => self.left(),
+            ControllerInput::Right => self.right(),
+            ControllerInput::Up => self.up(),
+            ControllerInput::Down => self.down(),
+        };
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag="t", content="c")]
+#[serde(tag = "t", content = "c")]
 enum ControllerInput {
     Left,
     Right,
@@ -64,16 +85,15 @@ enum ControllerInput {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag="t", content="c")]
+#[serde(tag = "t", content = "c")]
 enum CommandInput {
-    // inputs passed to the controller for movement etc. 
+    // inputs passed to the controller for movement etc.
     Servo(ControllerInput),
     Disconnect,
 }
 
-
 // handle_socket currently expects to only be called once per client
-// if called twice without the client disconnecting things could get wonky. 
+// if called twice without the client disconnecting things could get wonky.
 async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
     let (mut sender, mut receiver) = socket.split();
     let (tx, mut rx) = tokio::sync::mpsc::channel(100);
@@ -81,23 +101,22 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
     // this spins up a "background worker"
     // that will take messages from the websocket and push them
     // into a queue so that the Controller is able to process
-    // the messages asyncorniously 
+    // the messages asyncorniously
     tokio::spawn(async move {
         while let Some(Ok(msg)) = receiver.next().await {
-            if let Message::Text(msg) = msg { 
+            if let Message::Text(msg) = msg {
                 match tx.send(msg.clone()).await {
-                    Ok(_) => { },
-                    Err(e) => println!("Failed to send message: {:?}", e)
+                    Ok(_) => {}
+                    Err(e) => println!("Failed to send message: {:?}", e),
                 }
             }
         }
     });
 
-
     // This is the main update loop for the controller.
     // basically this gets called every so often and allows
     // for the controller to respond to events coming from
-    // the arduino, rather than relying on messages sent from the client. 
+    // the arduino, rather than relying on messages sent from the client.
     loop {
         let f = rx.try_recv();
         tokio::time::sleep(Duration::from_millis(100)).await;
@@ -108,7 +127,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
                     let response = state.lock().await.handle_command(c);
                     sender.send(Message::Text(response)).await.unwrap();
                 }
-            },
+            }
             Err(_) => {
                 // println!("No message currently");
             }
@@ -122,9 +141,8 @@ struct AppState {
 }
 
 impl AppState {
-
-    /// Update function that should be called at a specified rate. 
-    // used for updating the client or getting the current state of stuff. 
+    /// Update function that should be called at a specified rate.
+    // used for updating the client or getting the current state of stuff.
     pub fn update(&mut self) -> String {
         todo!()
     }
@@ -133,8 +151,9 @@ impl AppState {
         match msg {
             CommandInput::Servo(command) => {
                 println!("Command: {:?}", command);
-            },
-            CommandInput::Disconnect => self.client_connected = false
+                self.controller.handle_command(command);
+            }
+            CommandInput::Disconnect => self.client_connected = false,
         }
         "hello".into()
     }
@@ -144,23 +163,21 @@ async fn websocket_test(
     Extension(state): Extension<Arc<Mutex<AppState>>>,
     ws: WebSocketUpgrade,
 ) -> Response {
-    println!("upgrade {:?}", ws);
-
-    // let r = Response::builder()
-    //     .status(StatusCode::CONFLICT)
-    //     .body(BoxBody::Full::from("not found")).unwrap();
     if state.lock().await.client_connected {
         (StatusCode::CONFLICT, String::from("already connected")).into_response()
-    } else { 
+    } else {
         state.lock().await.client_connected = true;
-        ws.on_upgrade(|socket| handle_socket(socket, state)).into_response()
+        ws.on_upgrade(|socket| handle_socket(socket, state))
+            .into_response()
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let handle = can::CANHandle::open(0).unwrap();
+
     let state = Arc::new(Mutex::new(AppState {
-        controller: TestController {},
+        controller: TestController { handle },
         client_connected: false,
     }));
 
@@ -183,7 +200,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-
 
 #[cfg(test)]
 mod tests {
