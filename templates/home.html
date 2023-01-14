@@ -53,7 +53,7 @@
   };
 
   socket.onmessage = function(e) {
-      alert(`[message] Data received from server: ${e.data}`);
+      logMessage(e);
   };
 
   var form = document.getElementById('form');
@@ -85,10 +85,10 @@
   // todo: filter out which keys we actually want to send. 
   textarea.addEventListener('keydown', (e) => {
       if (!e.repeat) {
-	  logMessage(`key "${e.key}" pressed [event: keydown]`);
+	  // logMessage(`key "${e.key}" pressed [event: keydown]`);
 	  send_key_to_server(e);
       } else {
-	  logMessage(`key "${e.key}" repeating [event: keydown]`);
+	  // logMessage(`key "${e.key}" repeating [event: keydown]`);
       }
   });
 

@@ -1,6 +1,6 @@
 use askama::Template;
-use axum::{Router, extract::{Query, WebSocketUpgrade, ws::{Message, WebSocket}}, response::Response, routing::get};
-use futures_util::{Sink, SinkExt, Stream, StreamExt};
+use axum::{Router, extract::{WebSocketUpgrade, ws::{Message, WebSocket}}, response::Response, routing::get};
+use futures_util::{SinkExt, StreamExt};
 use std::{collections::HashMap, net::SocketAddr};
 
 use tokio::net::{TcpListener, TcpStream};
@@ -33,13 +33,12 @@ async fn handle_socket(mut socket: WebSocket) {
 }
 
 
-async fn websocket_test(ws: WebSocketUpgrade, Query(query): Query<HashMap<String, String>>) -> Response {
+async fn websocket_test(ws: WebSocketUpgrade) -> Response {
     ws.on_upgrade(handle_socket)
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
@@ -48,9 +47,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let subscriber = tracing_subscriber::FmtSubscriber::new();
     // // use that subscriber to process traces emitted after this point
     // tracing::subscriber::set_global_default(subscriber)?;
-
-    println!("Hello, world!");
-
     let app = Router::new()
         .route("/", get(home))
         .route("/ws", get(websocket_test));
