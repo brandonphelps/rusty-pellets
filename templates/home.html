@@ -67,7 +67,7 @@
       }
   });
 
-  socket.addEventListener('error', function(m) { log("error") });
+  socket.addEventListener('error', function(m) { logMessage("error: " + m) });
 		     
 
   let textarea = document.getElementById('test-target'),
