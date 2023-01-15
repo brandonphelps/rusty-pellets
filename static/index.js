@@ -1,12 +1,17 @@
 'use strict';
 
+const fn = () => 1;
+
 // this causes a redeleraction, which is strang imo. 
 // const e = React.createElement;
 
 class Square extends React.Component {
-  render() {
-      const element = e("button", { className: "square" }, null );
-      return element;
+    render() {
+	return(
+	    <button className="square">
+		{ /* TODO */ } 
+	    </button>
+	);
   }
 }
 
