@@ -33,8 +33,8 @@ impl CANMessage {
     }
 }
 
-pub trait CANHandle: Sized {
-    fn open(dev: i32) -> Result<Self, CANError>;
+pub trait CANHandle: Send + Sync {
+    // fn open(dev: i32) -> Result<Self, CANError>;
     // non blocking write
     fn write(&self, msg: &CANMessage) -> Result<(), CANError>;
 
@@ -53,10 +53,13 @@ pub mod mock {
 
     pub struct MockHandle { }
 
-    impl CANHandle for MockHandle {
-        fn open(_dev: i32) -> Result<Self, CANError> {
+    impl MockHandle {
+        pub fn open(_dev: i32) -> Result<Self, CANError> {
             Ok(Self {})
         }
+    }
+
+    impl CANHandle for MockHandle {
 
         fn write(&self, msg: &CANMessage) -> Result<(), CANError> {
             todo!()
@@ -85,14 +88,17 @@ pub mod win {
         handle: KVHandle,
     }
 
-    impl CANHandle for WindowsCANHandle {
-        fn open(dev: i32) -> Result<Self, CANError> {
+    impl WindowsCANHandle {
+        pub fn open(dev: i32) -> Result<Self, CANError> {
             // it is safe to call this multiple times.
             can_initialize_library();
             let handle = can_open_channel(dev, 0x20).unwrap();
             can_bus_on(handle).unwrap();
             Ok(Self { handle })
         }
+    }
+
+    impl CANHandle for WindowsCANHandle {
 
         // non blocking write.
         fn write(&self, msg: &CANMessage) -> Result<(), CANError> {

@@ -119,24 +119,19 @@ enum StateResponse {
 }
 
 /// sort of global state that is shared amoungst all the api end point.  
-struct AppStateC<C> {
-    controller: ServoController<C>,
+struct AppState {
+    controller: ServoController,
     client_connected: bool,
 }
 
-impl<C> AppStateC<C> {
-    pub fn new(controller: ServoController<C>) -> Self {
+impl AppState {
+    pub fn new(controller: ServoController) -> Self {
         Self {
             controller,
             client_connected: false,
         }
     }
-}
 
-// todo: if on different platform change this out for a different type.
-type AppState = AppStateC<can::win::WindowsCANHandle>;
-
-impl AppState {
     /// Update function that should be called at a specified rate.
     // used for updating the client or getting the current state of stuff.
     pub fn update(&mut self) -> StateResponse {
@@ -163,6 +158,7 @@ async fn websocket_test(
     Extension(state): Extension<Arc<Mutex<AppState>>>,
     ws: WebSocketUpgrade,
 ) -> Response {
+    println!("Blah blah websocket test");
     if state.lock().await.client_connected {
         (StatusCode::CONFLICT, String::from("already connected")).into_response()
     } else {
@@ -172,14 +168,8 @@ async fn websocket_test(
     }
 }
 
-fn app<C>(state: Arc<Mutex<AppStateC<C>>>) -> Router
-where
-    C: Sync + Send + 'static
+fn app(state: Arc<Mutex<AppState>>) -> Router
 {
-    // // construct a subscriber that prints formatted traces to stdout
-    // let subscriber = tracing_subscriber::FmtSubscriber::new();
-    // // use that subscriber to process traces emitted after this point
-    // tracing::subscriber::set_global_default(subscriber)?;
     Router::new()
         .route("/", get(home))
         .route("/ws", get(websocket_test))
@@ -189,10 +179,10 @@ where
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let handle = can::CANHandle::open(0).unwrap();
+    let handle = can::WindowsCANHandle::open(0).unwrap();
 
     let state = Arc::new(Mutex::new(AppState::new(
-                                    ServoController::new(handle, 2))));
+                                    ServoController::new(Box::new(handle), 2))));
 
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
@@ -209,6 +199,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
+    use crate::can::MockHandle;
+
     use super::*;
 
     use std::net::{Ipv4Addr, SocketAddr};
@@ -216,32 +208,35 @@ mod tests {
     use can::CANHandle;
     use tokio_tungstenite::tungstenite;
 
-    // test router.
-    fn app() -> Router {
-        let mock_handle = can::mock::MockHandle::open(0).unwrap();
-
-        let state = Arc::new(Mutex::new(AppStateC::new(
-            ServoController::new(mock_handle, 2))));
-        Router::new().route("/unit-testable", get(websocket_test)).with_state(state)
-    }
 
     // test for ensuring that only a single controller connection
     // is allowed. 
     #[tokio::test]
     async fn single_controller_connection() {
+
+        tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::TRACE)
+            .init();
+
+        let state = Arc::new(Mutex::new(AppState::new(
+            ServoController::new(Box::new(MockHandle::open(0).unwrap()), 2))));
+        let app = app(state);
+
         let server = axum::Server::bind(&SocketAddr::from((Ipv4Addr::LOCALHOST, 0)))
-            .serve(app().into_make_service());
+            .serve(app.into_make_service());
         let addr = server.local_addr();
         tokio::spawn(server);
 
-
-        let (mut socket, _response) = tokio_tungstenite::connect_async(format!("ws://{addr}/integration-testable"))
+        println!("Connecting to: {}", format!("ws://{addr}/ws"));
+        let (mut socket, _response) = tokio_tungstenite::connect_async(format!("ws://{addr}/ws"))
             .await
             .unwrap();
 
-        socket.send(tungstenite::Message::text("foo")).await.unwrap();
-            
-        
+        tokio_tungstenite::connect_async(format!("ws://{addr}/ws"))
+            .await
+            .expect_err("Failed to connect");
+
+        // socket.send(tungstenite::Message::text("foo")).await.unwrap();
     }
 
     #[test]

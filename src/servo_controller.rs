@@ -24,16 +24,15 @@ pub enum ControllerError {
     InvalidMessage,
 }
 
-pub struct ServoController<C> {
-    handle: C,
+pub struct ServoController {
+    handle: Box<dyn CANHandle>,
     servos: Vec<ServoState>,
 }
 
-impl<C> ServoController<C>
-where
-    C: CANHandle,
+impl ServoController
 {
-    pub fn new(handle: C, servo_count: u32) -> Self {
+    pub fn new(handle: Box<dyn CANHandle>, servo_count: u32) -> Self {
+
         // todo: got to be a one liner for this.
         let mut servos = vec![];
         for i in 0..servo_count {
