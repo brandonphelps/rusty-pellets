@@ -25,12 +25,14 @@ pub enum ControllerError {
 }
 
 pub struct ServoController {
-    handle: CANHandle,
+    handle: Box<dyn CANHandle>,
     servos: Vec<ServoState>,
 }
 
-impl ServoController {
-    pub fn new(handle: CANHandle, servo_count: u32) -> Self {
+impl ServoController
+{
+    pub fn new(handle: Box<dyn CANHandle>, servo_count: u32) -> Self {
+
         // todo: got to be a one liner for this.
         let mut servos = vec![];
         for i in 0..servo_count {
@@ -42,24 +44,24 @@ impl ServoController {
 
     pub fn up(&mut self) -> Result<(), ControllerError> {
         println!("up");
-        let response = self.handle.write(&CANMessage::new(0x200, &[0x0], false));
+        let _response = self.handle.write(&CANMessage::new(0x200, &[0x0], false));
         Ok(())
     }
 
     pub fn down(&mut self) -> Result<(), ControllerError> {
         println!("down");
-        let response = self.handle.write(&CANMessage::new(0x200, &[0x3], false));
+        let _response = self.handle.write(&CANMessage::new(0x200, &[0x3], false));
         Ok(())
     }
     pub fn left(&mut self) -> Result<(), ControllerError> {
         println!("left");
-        let response = self.handle.write(&CANMessage::new(0x200, &[0x2], false));
+        let _response = self.handle.write(&CANMessage::new(0x200, &[0x2], false));
         Ok(())
     }
 
     pub fn right(&mut self) -> Result<(), ControllerError> {
         println!("right");
-        let response = self.handle.write(&CANMessage::new(0x200, &[0x1], false));
+        let _response = self.handle.write(&CANMessage::new(0x200, &[0x1], false));
         Ok(())
     }
 

@@ -1,9 +1,3 @@
-use kvaser_sys::CANHandle as KVHandle;
-/// Contains a wrapper around CAN communication
-use kvaser_sys::{
-    can_bus_on, can_initialize_library, can_open_channel, can_read, can_write, CANStatus,
-};
-
 #[derive(Debug)]
 pub enum CANError {
     ComErr,
@@ -39,48 +33,102 @@ impl CANMessage {
     }
 }
 
-// generic CANHandle helper
-pub struct CANHandle {
-    handle: KVHandle,
+pub trait CANHandle: Send + Sync {
+    // fn open(dev: i32) -> Result<Self, CANError>;
+    // non blocking write
+    fn write(&self, msg: &CANMessage) -> Result<(), CANError>;
+
+    // non blocking read
+    fn read(&self) -> Result<Option<CANMessage>, CANError>;
 }
 
-impl CANHandle {
-    pub fn open(dev: i32) -> Result<Self, CANError> {
-        // it is safe to call this multiple times.
-        can_initialize_library();
-        let handle = can_open_channel(dev, 0x20).unwrap();
-        can_bus_on(handle).unwrap();
-        Ok(Self { handle })
+#[cfg(target_os = "windows")]
+pub use win::*;
+
+pub use mock::*;
+
+#[cfg(not(target_os = "window"))]
+pub mod mock {
+    use super::*;
+
+    pub struct MockHandle { }
+
+    impl MockHandle {
+        pub fn open(_dev: i32) -> Result<Self, CANError> {
+            Ok(Self {})
+        }
     }
 
-    // non blocking write.
-    pub fn write(&self, msg: &CANMessage) -> Result<(), CANError> {
-        can_write(
-            self.handle,
-            msg.id,
-            &msg.data,
-            msg.dlc,
-            if msg.is_extended { 0x4 } else { 0x2 },
-        );
+    impl CANHandle for MockHandle {
 
-        Ok(())
+        fn write(&self, _msg: &CANMessage) -> Result<(), CANError> {
+            // todo: maybe store messages internally so that they can be inspected later? 
+            Ok(())
+        }
+
+        fn read(&self) -> Result<Option<CANMessage>, CANError> {
+            Ok(Some(CANMessage::new(0x200, &[1,2,3,4], false)))
+        }
+
+    }
+}
+
+#[cfg(target_os = "windows")]
+pub mod win {
+
+    use super::*;
+
+    use kvaser_sys::CANHandle as KVHandle;
+    /// Contains a wrapper around CAN communication
+    use kvaser_sys::{
+        can_bus_on, can_initialize_library, can_open_channel, can_read, can_write, CANStatus,
+    };
+
+    // generic CANHandle helper
+    pub struct WindowsCANHandle {
+        handle: KVHandle,
     }
 
-    // non block read.
-    pub fn read(&self) -> Result<Option<CANMessage>, CANError> {
-        match can_read(self.handle) {
-            Ok(msg_info) => {
-                let data = msg_info.1;
-                let dlc = msg_info.2;
-                let flags = msg_info.3;
+    impl WindowsCANHandle {
+        pub fn open(dev: i32) -> Result<Self, CANError> {
+            // it is safe to call this multiple times.
+            can_initialize_library();
+            let handle = can_open_channel(dev, 0x20).unwrap();
+            can_bus_on(handle).unwrap();
+            Ok(Self { handle })
+        }
+    }
 
-                // todo: do something with flags.
-                Ok(Some(CANMessage::new(msg_info.0, &data, false)))
-            }
-            Err(CANStatus::CanERR_NOMSG) => Ok(None),
-            Err(e) => {
-                println!("unknown can error: {:?}", e);
-                Err(CANError::ComErr)
+    impl CANHandle for WindowsCANHandle {
+
+        // non blocking write.
+        fn write(&self, msg: &CANMessage) -> Result<(), CANError> {
+            can_write(
+                self.handle,
+                msg.id,
+                &msg.data,
+                msg.dlc,
+                if msg.is_extended { 0x4 } else { 0x2 },
+            );
+
+            Ok(())
+        }
+
+        // non block read.
+        fn read(&self) -> Result<Option<CANMessage>, CANError> {
+            match can_read(self.handle) {
+                Ok(msg_info) => {
+                    let data = msg_info.1;
+                    let _flags = msg_info.3;
+
+                    // todo: do something with flags.
+                    Ok(Some(CANMessage::new(msg_info.0, &data, false)))
+                }
+                Err(CANStatus::CanERR_NOMSG) => Ok(None),
+                Err(e) => {
+                    println!("unknown can error: {:?}", e);
+                    Err(CANError::ComErr)
+                }
             }
         }
     }
