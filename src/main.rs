@@ -13,6 +13,9 @@ use axum::{
     Extension, Router,
 };
 
+
+use axum_extra::routing::SpaRouter;
+
 use futures::{sink::SinkExt, stream::StreamExt};
 
 use serde::{Deserialize, Serialize};
@@ -178,8 +181,8 @@ fn app(state: Arc<Mutex<AppState>>) -> Router {
     Router::new()
         .route("/", get(home))
         .route("/ws", get(websocket_test))
-        .route("/like_button.js", get(like_button))
         .layer(Extension(state))
+        .merge(SpaRouter::new("/static", "static"))
 }
 
 #[tokio::main]
@@ -196,6 +199,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     let app = app(state);
+
     axum::Server::bind(&"0.0.0.0:3000".parse()?)
         .serve(app.into_make_service())
         .await?;
