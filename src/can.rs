@@ -61,12 +61,13 @@ pub mod mock {
 
     impl CANHandle for MockHandle {
 
-        fn write(&self, msg: &CANMessage) -> Result<(), CANError> {
-            todo!()
+        fn write(&self, _msg: &CANMessage) -> Result<(), CANError> {
+            // todo: maybe store messages internally so that they can be inspected later? 
+            Ok(())
         }
 
         fn read(&self) -> Result<Option<CANMessage>, CANError> {
-            todo!()
+            Ok(Some(CANMessage::new(0x200, &[1,2,3,4], false)))
         }
 
     }

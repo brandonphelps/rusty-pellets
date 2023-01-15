@@ -66,7 +66,12 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
             if let Message::Text(msg) = msg {
                 match tx.send(msg.clone()).await {
                     Ok(_) => {}
-                    Err(e) => println!("Failed to send message: {:?}", e),
+                    Err(e) =>
+                    {
+                        println!("Failed to send message: {:?}", e);
+                        // when the reciver end has closed then we just terminate. 
+                        break;
+                    },
                 }
             }
         }
@@ -86,25 +91,17 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
 
         let f = rx.try_recv();
         tokio::time::sleep(Duration::from_millis(100)).await;
-        match f {
-            Ok(e) => {
-                let command: Result<CommandInput, serde_json::Error> = serde_json::from_str(&e);
-                if let Ok(c) = command {
-                    let response: StateResponse = state.lock().await.handle_command(c);
-                    match response {
-                        StateResponse::ServoState(s) => {
-                            let response_json = serde_json::to_string(&s).unwrap();
-                            sender
-                                .send(Message::Text(response_json.to_string()))
-                                .await
-                                .unwrap();
-                        }
-                        StateResponse::None => {}
-                    }
+
+        if let Ok(input_string) = f {
+            if let Ok(command) = serde_json::from_str::<CommandInput>(&input_string) {
+                let response = state.lock().await.handle_command(command);
+
+                let response_json = serde_json::to_string(&response).unwrap();
+                sender.send(Message::Text(response_json.to_string())).await.unwrap();
+
+                if let StateResponse::Disconnect = response {
+                    break;
                 }
-            }
-            Err(_) => {
-                // println!("No message currently");
             }
         }
     }
@@ -115,6 +112,8 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
 #[serde(tag = "t", content = "c")]
 enum StateResponse {
     ServoState(Vec<ServoState>),
+    // if provided marks a successful disconnect. 
+    Disconnect,
     None,
 }
 
@@ -145,12 +144,14 @@ impl AppState {
     pub fn handle_command(&mut self, msg: CommandInput) -> StateResponse {
         match msg {
             CommandInput::Servo(command) => {
-                println!("Command: {:?}", command);
                 self.controller.handle_command(command).unwrap();
+                StateResponse::None
             }
-            CommandInput::Disconnect => self.client_connected = false,
+            CommandInput::Disconnect => {
+                self.client_connected = false;
+                StateResponse::Disconnect
+            },
         }
-        StateResponse::None
     }
 }
 
@@ -199,25 +200,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
+    use tokio_tungstenite::tungstenite;
+
     use crate::can::MockHandle;
 
     use super::*;
 
     use std::net::{Ipv4Addr, SocketAddr};
 
-    use can::CANHandle;
-    use tokio_tungstenite::tungstenite;
-
 
     // test for ensuring that only a single controller connection
     // is allowed. 
     #[tokio::test]
     async fn single_controller_connection() {
-
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::TRACE)
-            .init();
-
         let state = Arc::new(Mutex::new(AppState::new(
             ServoController::new(Box::new(MockHandle::open(0).unwrap()), 2))));
         let app = app(state);
@@ -226,9 +221,7 @@ mod tests {
             .serve(app.into_make_service());
         let addr = server.local_addr();
         tokio::spawn(server);
-
-        println!("Connecting to: {}", format!("ws://{addr}/ws"));
-        let (mut socket, _response) = tokio_tungstenite::connect_async(format!("ws://{addr}/ws"))
+        let (socket, _response) = tokio_tungstenite::connect_async(format!("ws://{addr}/ws"))
             .await
             .unwrap();
 
@@ -237,6 +230,81 @@ mod tests {
             .expect_err("Failed to connect");
 
         // socket.send(tungstenite::Message::text("foo")).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn websocket_disconnect() {
+        tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::TRACE)
+            .init();
+
+        let state = Arc::new(Mutex::new(AppState::new(
+            ServoController::new(Box::new(MockHandle::open(0).unwrap()), 2))));
+
+        let local_s = state.clone();
+
+        let app = app(state);
+
+        let server = axum::Server::bind(&SocketAddr::from((Ipv4Addr::LOCALHOST, 0)))
+            .serve(app.into_make_service());
+        let addr = server.local_addr();
+        tokio::spawn(server);
+        let (mut socket, _response) = tokio_tungstenite::connect_async(format!("ws://{addr}/ws"))
+            .await
+            .unwrap();
+
+        socket.send(tungstenite::Message::text(serde_json::to_string(&CommandInput::Disconnect).unwrap()))
+            .await.unwrap();
+
+        tokio::time::sleep(Duration::from_secs(2)).await;
+
+        assert_eq!(local_s.lock().await.client_connected, false);
+
+        // socket.send(tungstenite::Message::text("foo")).await.unwrap();
+    }
+
+    #[test]
+    fn app_state_update() {
+        let mut state = AppState::new(
+            ServoController::new(Box::new(MockHandle::open(0).unwrap()), 2));
+        let update = state.update();
+        match update {
+            StateResponse::ServoState(f) => {
+                assert_eq!(f.len(), 2);
+            },
+            StateResponse::None => assert!(false),
+            StateResponse::Disconnect => assert!(false),
+        }
+    }
+
+    #[test]
+    fn app_state_disconnect() {
+        let mut state = AppState::new(
+            ServoController::new(Box::new(MockHandle::open(0).unwrap()), 2));
+        let update = state.handle_command(CommandInput::Disconnect);
+        assert_eq!(state.client_connected, false);
+        
+        match update {
+            StateResponse::ServoState(_) => assert!(false),
+            StateResponse::Disconnect => assert!(true),
+            StateResponse::None => assert!(false),
+        }
+        // how to do the equvalent of this without partial eq. 
+        // assert_eq!(update, StateResponse::Disconnect);
+    }
+
+    #[test]
+    fn app_state_servo_up() {
+        let mut state = AppState::new(
+            ServoController::new(Box::new(MockHandle::open(0).unwrap()), 2));
+        let update = state.handle_command(CommandInput::Servo(ControllerInput::Up));
+        match update {
+            StateResponse::ServoState(_) => assert!(false),
+            StateResponse::Disconnect => assert!(false),
+            StateResponse::None => assert!(true),
+        }
+        // how to do the equvalent of this without partial eq. 
+        // assert_eq!(update, StateResponse::Disconnect);
     }
 
     #[test]
