@@ -23,6 +23,8 @@ mod servo_controller;
 
 use servo_controller::{ServoController, ServoState};
 
+
+
 // use futures_util::{future, StreamExt, TryStreamExt};
 #[derive(Template)]
 #[template(path = "home.html")]
@@ -34,7 +36,7 @@ async fn home() -> HomeTemplate {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "t", content = "c")]
-enum ControllerInput {
+pub enum ControllerInput {
     Left,
     Right,
     Up,
@@ -75,12 +77,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
     // for the controller to respond to events coming from
     // the arduino, rather than relying on messages sent from the client.
     loop {
-        state.lock().await.update();
-
-        // send servo data.
-        // let servo_json = serde_json::to_string().unwrap();
-        let s = StateResponse::ServoState(state.lock().await.controller.get_servo_state().to_vec());
-
+        let s = state.lock().await.update();
         let response_json = serde_json::to_string(&s).unwrap();
         sender
             .send(Message::Text(response_json.to_string()))
@@ -94,9 +91,16 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
                 let command: Result<CommandInput, serde_json::Error> = serde_json::from_str(&e);
                 if let Ok(c) = command {
                     let response: StateResponse = state.lock().await.handle_command(c);
-
-                    // let response_s = serde_json::to_string(&response).unwrap();
-                    // sender.send(Message::Text(response_s)).await.unwrap();
+                    match response {
+                        StateResponse::ServoState(s) => {
+                            let response_json = serde_json::to_string(&s).unwrap();
+                            sender
+                                .send(Message::Text(response_json.to_string()))
+                                .await
+                                .unwrap();
+                        }
+                        StateResponse::None => {}
+                    }
                 }
             }
             Err(_) => {
@@ -115,24 +119,39 @@ enum StateResponse {
 }
 
 /// sort of global state that is shared amoungst all the api end point.  
-struct AppState {
-    controller: ServoController,
+struct AppStateC<C> {
+    controller: ServoController<C>,
     client_connected: bool,
 }
+
+impl<C> AppStateC<C> {
+    pub fn new(controller: ServoController<C>) -> Self {
+        Self {
+            controller,
+            client_connected: false,
+        }
+    }
+}
+
+// todo: if on different platform change this out for a different type.
+type AppState = AppStateC<can::win::WindowsCANHandle>;
 
 impl AppState {
     /// Update function that should be called at a specified rate.
     // used for updating the client or getting the current state of stuff.
-    pub fn update(&mut self) -> String {
-        self.controller.update();
-        "update".into()
+    pub fn update(&mut self) -> StateResponse {
+        self.controller.update().unwrap();
+
+        // report out servo states.
+        let servo_states = self.controller.get_servo_state().to_vec();
+        StateResponse::ServoState(servo_states)
     }
 
     pub fn handle_command(&mut self, msg: CommandInput) -> StateResponse {
         match msg {
             CommandInput::Servo(command) => {
                 println!("Command: {:?}", command);
-                self.controller.handle_command(command);
+                self.controller.handle_command(command).unwrap();
             }
             CommandInput::Disconnect => self.client_connected = false,
         }
@@ -153,28 +172,34 @@ async fn websocket_test(
     }
 }
 
+fn app<C>(state: Arc<Mutex<AppStateC<C>>>) -> Router
+where
+    C: Sync + Send + 'static
+{
+    // // construct a subscriber that prints formatted traces to stdout
+    // let subscriber = tracing_subscriber::FmtSubscriber::new();
+    // // use that subscriber to process traces emitted after this point
+    // tracing::subscriber::set_global_default(subscriber)?;
+    Router::new()
+        .route("/", get(home))
+        .route("/ws", get(websocket_test))
+        .layer(Extension(state))
+}
+
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let handle = can::CANHandle::open(0).unwrap();
 
-    let state = Arc::new(Mutex::new(AppState {
-        controller: ServoController::new(handle, 2),
-        client_connected: false,
-    }));
+    let state = Arc::new(Mutex::new(AppState::new(
+                                    ServoController::new(handle, 2))));
 
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
 
-    // // construct a subscriber that prints formatted traces to stdout
-    // let subscriber = tracing_subscriber::FmtSubscriber::new();
-    // // use that subscriber to process traces emitted after this point
-    // tracing::subscriber::set_global_default(subscriber)?;
-    let app = Router::new()
-        .route("/", get(home))
-        .route("/ws", get(websocket_test))
-        .layer(Extension(state));
 
+    let app = app(state);
     axum::Server::bind(&"0.0.0.0:3000".parse()?)
         .serve(app.into_make_service())
         .await?;
@@ -184,8 +209,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
+
+    use std::net::{Ipv4Addr, SocketAddr};
+
+    use can::CANHandle;
+    use tokio_tungstenite::tungstenite;
+
+    // test router.
+    fn app() -> Router {
+        let mock_handle = can::mock::MockHandle::open(0).unwrap();
+
+        let state = Arc::new(Mutex::new(AppStateC::new(
+            ServoController::new(mock_handle, 2))));
+        Router::new().route("/unit-testable", get(websocket_test)).with_state(state)
+    }
+
+    // test for ensuring that only a single controller connection
+    // is allowed. 
+    #[tokio::test]
+    async fn single_controller_connection() {
+        let server = axum::Server::bind(&SocketAddr::from((Ipv4Addr::LOCALHOST, 0)))
+            .serve(app().into_make_service());
+        let addr = server.local_addr();
+        tokio::spawn(server);
+
+
+        let (mut socket, _response) = tokio_tungstenite::connect_async(format!("ws://{addr}/integration-testable"))
+            .await
+            .unwrap();
+
+        socket.send(tungstenite::Message::text("foo")).await.unwrap();
+            
+        
+    }
 
     #[test]
     fn test_command_serde() {
