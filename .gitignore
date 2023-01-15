@@ -3,5 +3,6 @@ book
 
 # Added by cargo
 
+/static_gen/
 /target
 /node_modules/

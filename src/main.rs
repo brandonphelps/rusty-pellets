@@ -172,11 +172,6 @@ async fn websocket_test(
     }
 }
 
-async fn like_button() -> impl IntoResponse {
-    let f = std::fs::read_to_string("static/like_button.js").unwrap();
-    f.into_response()
-}
-
 fn app(state: Arc<Mutex<AppState>>) -> Router {
     Router::new()
         .route("/", get(home))
