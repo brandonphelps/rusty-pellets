@@ -51,7 +51,7 @@ pub use mock::*;
 pub mod mock {
     use super::*;
 
-    pub struct MockHandle { }
+    pub struct MockHandle {}
 
     impl MockHandle {
         pub fn open(_dev: i32) -> Result<Self, CANError> {
@@ -60,16 +60,14 @@ pub mod mock {
     }
 
     impl CANHandle for MockHandle {
-
         fn write(&self, _msg: &CANMessage) -> Result<(), CANError> {
-            // todo: maybe store messages internally so that they can be inspected later? 
+            // todo: maybe store messages internally so that they can be inspected later?
             Ok(())
         }
 
         fn read(&self) -> Result<Option<CANMessage>, CANError> {
-            Ok(Some(CANMessage::new(0x200, &[1,2,3,4], false)))
+            Ok(Some(CANMessage::new(0x200, &[1, 2, 3, 4], false)))
         }
-
     }
 }
 
@@ -100,7 +98,6 @@ pub mod win {
     }
 
     impl CANHandle for WindowsCANHandle {
-
         // non blocking write.
         fn write(&self, msg: &CANMessage) -> Result<(), CANError> {
             can_write(

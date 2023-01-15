@@ -29,10 +29,8 @@ pub struct ServoController {
     servos: Vec<ServoState>,
 }
 
-impl ServoController
-{
+impl ServoController {
     pub fn new(handle: Box<dyn CANHandle>, servo_count: u32) -> Self {
-
         // todo: got to be a one liner for this.
         let mut servos = vec![];
         for i in 0..servo_count {

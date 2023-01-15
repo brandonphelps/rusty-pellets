@@ -4,6 +4,13 @@
 
 {% block content %}
 
+
+<div id="like_button_container"></div>
+
+
+
+
+
 <div>
   Rusty Pellets
 </div>
@@ -48,6 +55,9 @@
 
 {% block script_content %}
 
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="like_button.js"></script>
 
 <script>
   let socket = new WebSocket('ws://'+window.location.host+'/ws');
