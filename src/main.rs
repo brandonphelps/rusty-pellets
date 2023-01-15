@@ -35,6 +35,9 @@ async fn home() -> HomeTemplate {
     HomeTemplate {}
 }
 
+struct ServoState {
+}
+
 enum ControllerError {}
 
 struct TestController {
@@ -65,13 +68,26 @@ impl TestController {
         Ok(())
     }
 
-    pub fn handle_command(&mut self, command: ControllerInput) {
+    pub fn handle_command(&mut self, command: ControllerInput) -> Result<(), ControllerError> {
         match command {
             ControllerInput::Left => self.left(),
             ControllerInput::Right => self.right(),
             ControllerInput::Up => self.up(),
             ControllerInput::Down => self.down(),
-        };
+        }
+    }
+
+    // 
+    pub fn update(&mut self) -> Result<(), ControllerError> {
+        // read in can message and handle incoming can messages. 
+        if let Ok(Some(msg)) = self.handle.read() {
+            println!("Got a message: {:?}", msg);
+        }
+        Ok(())
+    }
+
+    pub fn get_servo_state(&self) -> Result<Vec<ServoState>, ControllerError> {
+        todo!()
     }
 }
 
@@ -118,6 +134,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
     // for the controller to respond to events coming from
     // the arduino, rather than relying on messages sent from the client.
     loop {
+        state.lock().await.update();
         let f = rx.try_recv();
         tokio::time::sleep(Duration::from_millis(100)).await;
         match f {
@@ -144,7 +161,8 @@ impl AppState {
     /// Update function that should be called at a specified rate.
     // used for updating the client or getting the current state of stuff.
     pub fn update(&mut self) -> String {
-        todo!()
+        self.controller.update();
+        "update".into()
     }
 
     pub fn handle_command(&mut self, msg: CommandInput) -> String {

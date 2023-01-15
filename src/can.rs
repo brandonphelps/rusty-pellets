@@ -1,13 +1,14 @@
 /// Contains a wrapper around CAN communication
 
-use kvaser_sys::{can_initialize_library, can_open_channel, can_write, can_bus_on};
+use kvaser_sys::{can_initialize_library, can_open_channel, can_write, can_bus_on, can_read, CANStatus};
 use kvaser_sys::CANHandle as KVHandle;
 
 #[derive(Debug)]
 pub enum CANError {
-
+    ComErr
 }
 
+#[derive(Debug)]
 pub struct CANMessage {
     pub id: u32,
     pub data: [u8; 8],
@@ -58,6 +59,7 @@ impl CANHandle {
         })
     }
 
+    // non blocking write. 
     pub fn write(&self, msg: &CANMessage) -> Result<(), CANError> {
         can_write(self.handle, msg.id, &msg.data, msg.dlc, if msg.is_extended {
             0x4
@@ -66,6 +68,28 @@ impl CANHandle {
         });
 
         Ok(())
+    }
+
+    // non block read. 
+    pub fn read(&self) -> Result<Option<CANMessage>, CANError> {
+        match can_read(self.handle) {
+
+            Ok(msg_info) => {
+                let data = msg_info.1;
+                let dlc = msg_info.2;
+                let flags = msg_info.3;
+
+                // todo: do something with flags. 
+                Ok(Some(CANMessage::new(msg_info.0,
+                                        &data,
+                                        false)))
+            }
+            Err(CANStatus::CanERR_NOMSG) => Ok(None),
+            Err(e) => {
+                println!("unknown can error: {:?}", e);
+                Err(CANError::ComErr)
+            }
+        }
     }
 }
     
