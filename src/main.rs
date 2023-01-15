@@ -21,7 +21,7 @@ use tokio::sync::Mutex;
 mod can;
 mod servo_controller;
 
-use servo_controller::{ServoState, ServoController};
+use servo_controller::{ServoController, ServoState};
 
 // use futures_util::{future, StreamExt, TryStreamExt};
 #[derive(Template)]
@@ -31,8 +31,6 @@ struct HomeTemplate {}
 async fn home() -> HomeTemplate {
     HomeTemplate {}
 }
-
-
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "t", content = "c")]
@@ -96,7 +94,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
                 let command: Result<CommandInput, serde_json::Error> = serde_json::from_str(&e);
                 if let Ok(c) = command {
                     let response: StateResponse = state.lock().await.handle_command(c);
-                    
+
                     // let response_s = serde_json::to_string(&response).unwrap();
                     // sender.send(Message::Text(response_s)).await.unwrap();
                 }
@@ -183,7 +181,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-
 
 #[cfg(test)]
 mod tests {

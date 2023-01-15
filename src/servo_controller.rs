@@ -1,12 +1,11 @@
 /// this module provides a wrapper around a controller module that can
 /// manupulate various number of servos.
 /// note: the ServoController does not control a single servo, but rather
-/// expects a single module that can control multiple entries. 
-
-use crate::can::{CANMessage, CANHandle};
+/// expects a single module that can control multiple entries.
+use crate::can::{CANHandle, CANMessage};
 use crate::ControllerInput;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ServoState {
@@ -19,8 +18,6 @@ impl ServoState {
         Self { id, angle: 0 }
     }
 }
-
-
 
 #[derive(Debug)]
 pub enum ControllerError {
@@ -104,5 +101,3 @@ impl ServoController {
         &self.servos
     }
 }
-
-
