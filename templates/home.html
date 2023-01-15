@@ -38,6 +38,11 @@
     </div>
       
 
+    <div>
+      <textarea rows="1" name="servo1" id="servo0"></textarea>
+      <textarea rows="1" name="servo2" id="servo1"></textarea>
+    </div>
+
 {% endblock content %}
 
 
@@ -53,8 +58,29 @@
   };
 
   socket.onmessage = function(e) {
+
+
+
       console.log("Got a message: " + e.data);
-      logMessage(e.data);
+
+
+      try {
+	  let response = JSON.parse(e.data);
+	  if (response.t == "ServoState") {
+	      console.log("servo state");
+	      response.c.forEach(function(servo) {
+		  let servo_area = document.getElementById('servo' + servo.id);
+		  servo_area.value = servo.angle;
+	      });
+	  } else {
+	      console.log("not servo state");
+	  }	      
+
+      } catch (ex) {
+	  console.error(ex);
+      }
+      
+
   };
 
   var form = document.getElementById('form');

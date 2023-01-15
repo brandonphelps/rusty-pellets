@@ -13,18 +13,15 @@ use axum::{
     Extension, Router,
 };
 
-use futures::{
-    sink::SinkExt,
-    stream::StreamExt,
-};
-
+use futures::{sink::SinkExt, stream::StreamExt};
 
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
 mod can;
+mod servo_controller;
 
-use can::CANMessage;
+use servo_controller::{ServoState, ServoController};
 
 // use futures_util::{future, StreamExt, TryStreamExt};
 #[derive(Template)]
@@ -35,61 +32,7 @@ async fn home() -> HomeTemplate {
     HomeTemplate {}
 }
 
-struct ServoState {
-}
 
-enum ControllerError {}
-
-struct TestController {
-    handle: can::CANHandle,
-}
-
-impl TestController {
-    pub fn up(&mut self) -> Result<(), ControllerError> {
-        println!("up");
-        let response = self.handle.write(&CANMessage::new(0x200, &[0x0], false));
-        Ok(())
-    }
-
-    pub fn down(&mut self) -> Result<(), ControllerError> {
-        println!("down");
-        let response = self.handle.write(&CANMessage::new(0x200, &[0x3], false));
-        Ok(())
-    }
-    pub fn left(&mut self) -> Result<(), ControllerError> {
-        println!("left");
-        let response = self.handle.write(&CANMessage::new(0x200, &[0x2], false));
-        Ok(())
-    }
-
-    pub fn right(&mut self) -> Result<(), ControllerError> {
-        println!("right");
-        let response = self.handle.write(&CANMessage::new(0x200, &[0x1], false));
-        Ok(())
-    }
-
-    pub fn handle_command(&mut self, command: ControllerInput) -> Result<(), ControllerError> {
-        match command {
-            ControllerInput::Left => self.left(),
-            ControllerInput::Right => self.right(),
-            ControllerInput::Up => self.up(),
-            ControllerInput::Down => self.down(),
-        }
-    }
-
-    // 
-    pub fn update(&mut self) -> Result<(), ControllerError> {
-        // read in can message and handle incoming can messages. 
-        if let Ok(Some(msg)) = self.handle.read() {
-            println!("Got a message: {:?}", msg);
-        }
-        Ok(())
-    }
-
-    pub fn get_servo_state(&self) -> Result<Vec<ServoState>, ControllerError> {
-        todo!()
-    }
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "t", content = "c")]
@@ -135,14 +78,27 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
     // the arduino, rather than relying on messages sent from the client.
     loop {
         state.lock().await.update();
+
+        // send servo data.
+        // let servo_json = serde_json::to_string().unwrap();
+        let s = StateResponse::ServoState(state.lock().await.controller.get_servo_state().to_vec());
+
+        let response_json = serde_json::to_string(&s).unwrap();
+        sender
+            .send(Message::Text(response_json.to_string()))
+            .await
+            .unwrap();
+
         let f = rx.try_recv();
         tokio::time::sleep(Duration::from_millis(100)).await;
         match f {
             Ok(e) => {
                 let command: Result<CommandInput, serde_json::Error> = serde_json::from_str(&e);
                 if let Ok(c) = command {
-                    let response = state.lock().await.handle_command(c);
-                    sender.send(Message::Text(response)).await.unwrap();
+                    let response: StateResponse = state.lock().await.handle_command(c);
+                    
+                    // let response_s = serde_json::to_string(&response).unwrap();
+                    // sender.send(Message::Text(response_s)).await.unwrap();
                 }
             }
             Err(_) => {
@@ -152,8 +108,17 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
     }
 }
 
+// messages that are sent back to the client.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "t", content = "c")]
+enum StateResponse {
+    ServoState(Vec<ServoState>),
+    None,
+}
+
+/// sort of global state that is shared amoungst all the api end point.  
 struct AppState {
-    controller: TestController,
+    controller: ServoController,
     client_connected: bool,
 }
 
@@ -165,7 +130,7 @@ impl AppState {
         "update".into()
     }
 
-    pub fn handle_command(&mut self, msg: CommandInput) -> String {
+    pub fn handle_command(&mut self, msg: CommandInput) -> StateResponse {
         match msg {
             CommandInput::Servo(command) => {
                 println!("Command: {:?}", command);
@@ -173,7 +138,7 @@ impl AppState {
             }
             CommandInput::Disconnect => self.client_connected = false,
         }
-        "hello".into()
+        StateResponse::None
     }
 }
 
@@ -195,7 +160,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let handle = can::CANHandle::open(0).unwrap();
 
     let state = Arc::new(Mutex::new(AppState {
-        controller: TestController { handle },
+        controller: ServoController::new(handle, 2),
         client_connected: false,
     }));
 
@@ -218,6 +183,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
 
 #[cfg(test)]
 mod tests {
