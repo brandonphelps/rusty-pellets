@@ -159,7 +159,6 @@ async fn websocket_test(
     Extension(state): Extension<Arc<Mutex<AppState>>>,
     ws: WebSocketUpgrade,
 ) -> Response {
-    println!("Blah blah websocket test");
     if state.lock().await.client_connected {
         (StatusCode::CONFLICT, String::from("already connected")).into_response()
     } else {
