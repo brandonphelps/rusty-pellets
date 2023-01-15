@@ -177,7 +177,7 @@ fn app(state: Arc<Mutex<AppState>>) -> Router {
         .route("/", get(home))
         .route("/ws", get(websocket_test))
         .layer(Extension(state))
-        .merge(SpaRouter::new("/static", "static"))
+        .merge(SpaRouter::new("/static", "static_gen"))
 }
 
 #[tokio::main]
