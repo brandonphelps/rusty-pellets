@@ -28,12 +28,18 @@ use servo_controller::{ServoController, ServoState};
 
 // use futures_util::{future, StreamExt, TryStreamExt};
 #[derive(Template)]
-#[template(path = "home.html")]
-struct HomeTemplate {}
+#[template(path = "index.html")]
+struct IndexTemplate {}
 
-async fn home() -> HomeTemplate {
-    println!("Searching out home");
-    HomeTemplate {}
+async fn index() -> IndexTemplate {
+    IndexTemplate {}
+}
+
+#[derive(Template)]
+#[template(path="tictactoe.html")]
+struct TicTacToeTemplate {}
+async fn tictactoe() -> TicTacToeTemplate {
+    TicTacToeTemplate {}
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -175,7 +181,8 @@ async fn websocket_test(
 
 fn app(state: Arc<Mutex<AppState>>) -> Router {
     Router::new()
-        .route("/", get(home))
+        .route("/", get(index))
+        .route("/tictactoe", get(tictactoe))
         .route("/ws", get(websocket_test))
         .layer(Extension(state))
         .merge(SpaRouter::new("/static", "static_gen"))

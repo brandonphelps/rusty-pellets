@@ -2,7 +2,6 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './css/index.css'
 
 class Square extends React.Component {
     render() {
