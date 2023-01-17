@@ -8,10 +8,10 @@ module.exports = {
 	extensions: ['.ts', '.tsx', '.js']
     },
     output: {
-	path: path.resolve(__dirname, 'dev'),
-	filename: 'bundle.js'
+	path: path.resolve(__dirname, 'static_gen'),
+	filename: 'main_gen.js'
     },
-    mode:'development',
+    mode: 'development',
     module: {
 	rules: [
             {
@@ -22,7 +22,11 @@ module.exports = {
 		options: {
 		    presets: ['@babel/preset-react']
 		}
-            }
+            },
+	    {
+		test: /\.css$/i,
+		use: ['style-loader', 'css-loader'],
+	    }
 	]
     }
 };

@@ -3,6 +3,10 @@
 // this causes a redeleraction, which is strang imo. 
 // const e = React.createElement;
 
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './css/index.css'
+
 class Square extends React.Component {
     render() {
 	return(
@@ -121,7 +125,6 @@ class Game extends React.Component {
 }
 
 // ========================================
-
 const root = ReactDOM.createRoot(document.querySelector("#root"));
 root.render(<Game />);
 

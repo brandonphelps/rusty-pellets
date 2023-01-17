@@ -52,14 +52,13 @@
 {% endblock content %}
 
 
-{% block script_content %}
+    {% block script_content %}
 
-    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-    <script src="static/like_button.js"></script>
-    <script src="static/index.js"></script>
+    <!--- order is super important this must come after root --->
+    <script src="static/main_gen.js"></script>
 
 <script>
+
   let socket = new WebSocket('ws://'+window.location.host+'/ws');
 
   socket.onopen = function(e) {

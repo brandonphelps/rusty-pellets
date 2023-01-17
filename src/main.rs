@@ -32,6 +32,7 @@ use servo_controller::{ServoController, ServoState};
 struct HomeTemplate {}
 
 async fn home() -> HomeTemplate {
+    println!("Searching out home");
     HomeTemplate {}
 }
 
