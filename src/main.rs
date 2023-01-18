@@ -100,18 +100,21 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
 
         let f = rx.try_recv();
         tokio::time::sleep(Duration::from_millis(100)).await;
-
         if let Ok(input_string) = f {
+            println!("Got an input string: {:?}", input_string);
             if let Ok(command) = serde_json::from_str::<CommandInput>(&input_string) {
                 let response = state.lock().await.handle_command(command);
+                println!("Got command from server");
 
                 let response_json = serde_json::to_string(&response).unwrap();
+
                 sender
                     .send(Message::Text(response_json.to_string()))
                     .await
                     .unwrap();
 
                 if let StateResponse::Disconnect = response {
+                    println!("Disconnecting");
                     break;
                 }
             }
@@ -344,5 +347,14 @@ mod tests {
         let expected_output = r#"{"t":"Servo","c":{"t":"Right"}}"#;
         let k = serde_json::to_string(&f).unwrap();
         assert_eq!(k, expected_output);
+    }
+
+    #[test]
+    fn test_command_disconnect() {
+        let f = CommandInput::Disconnect;
+        let expected_output = r#"{"t":"Disconnect"}"#;
+        let k = serde_json::to_string(&f).unwrap();
+        assert_eq!(k, expected_output);
+
     }
 }

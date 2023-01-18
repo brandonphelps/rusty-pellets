@@ -100,6 +100,7 @@ class Game extends React.Component {
     }
 
     handleClick(i) {
+	console.log("Handle click");
 	const history = this.state.history.slice(0, this.state.stepNumber + 1);
 	const current = history[this.state.stepNumber];
 	const squares = current.squares.slice();
@@ -135,14 +136,12 @@ class Game extends React.Component {
 	    );
 	});
 
-
 	let status;
 	if (winner) {
 	    status = 'Winner: ' + winner;
 	} else {
 	    status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
 	}
-
 
 	return (
 	    <div className="game">
@@ -174,10 +173,30 @@ class ServoGauge extends React.Component {
 	const label_value = 'Servo ' + this.props.servo_id;
 	return (
 	    <div className="servo">
-
 		<div>{label_value}</div>
 		<textarea readOnly value={this.props.angle}></textarea>
 	    </div>
+	);
+    }
+}
+
+class ConnectedStatusGuage extends React.Component {
+    render() {
+	return (
+	    <div className="controller-status">
+		<div>Connected</div>
+		<div>Disconnected</div>
+	    </div>
+	);
+    }
+}
+
+class ControllerButton extends React.Component {
+    render() {
+	return (
+	    <button onClick={() => this.props.onClick()} className="controller-status-button btn btn-primary">
+		Connect
+	    </button>
 	);
     }
 }
@@ -187,15 +206,17 @@ class ControllerApp extends React.Component {
 	super(props);
 	this.state = {
 	    angle_one: 0,
-	    angle_two: 0
+	    angle_two: 0,
+	    connected: false,
+	    button_text: 'Connect',
 	};
     }
 
-    componentDidMount() {
-	var ws = new WebSocket('ws://' + window.location.host + '/ws');
+    build_websocket() {
+	// prob not needed. 
 	var that = this;
-	ws.onmessage = function(event) {
-
+	this.web_sock = new WebSocket('ws://' + window.location.host + '/ws');
+	this.web_sock.onmessage = function(event) {
 	    // todo: maybe move this to some sort of processing function?
 	    const response = JSON.parse(event.data);
 	    if (response.t == "ServoState") {
@@ -204,17 +225,62 @@ class ControllerApp extends React.Component {
 		that.setState(
 		    {
 			angle_one: angle_one,
-			angle_two: angle_two
+			angle_two: angle_two,
+			
 		    }
 		);
 	    }
 	}
+
+	this.web_sock.onclose = function(event) {
+	    console.log('The connection has been closed successfully');
+	}
+    }
+
+    connect() {
+	// websocket doesn't provide a re open
+	// how does this affect the button? does the button still bind to the old websocket?
+	console.log("Connecting to server ws");
+	this.build_websocket();
+	// todo should likely check return values from connecting to the server.
+	this.setState( {
+	    connected: true,
+	    button_text: 'Connect',
+	});
+    }
+
+    disconnect() {
+	console.log("Disconnecting to server ws");
+	this.web_sock.send(JSON.stringify({"t": "Disconnect"}));
+	this.setState({
+	    connected: false,
+	    button_text: 'Disconnect',
+	});
+    }
+    
+    componentDidMount() {
+	// this.build_websocket();
     }
 
     render() {
 	// needs a disconnect button.
+	var button_callback;
+	if (!this.state.connected) {
+	    button_callback = () => { this.connect() };
+	} else {
+	    button_callback = () => { this.disconnect() };
+	}
+
 	return (
 	    <div className="controller-app">
+		<ConnectedStatusGuage
+		    
+		/>
+
+		<button onClick={ button_callback } className="controller-status-button btn btn-primary">
+		    { this.state.button_text }
+		</button>
+
 		<ServoGauge
 		    angle={this.state.angle_one}
 		    servo_id={1}
@@ -232,13 +298,8 @@ class ControllerApp extends React.Component {
 const root = ReactDOM.createRoot(document.querySelector("#root"));
 root.render(
     <div>
-	<Game />
 	<ControllerApp />
+	<br />
+	<br />
+	<Game />
     </div>);
-
-
-import foo from './foo.js';
-
-export default function() {
-    console.log(foo);
-}
