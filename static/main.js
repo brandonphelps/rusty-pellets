@@ -201,6 +201,59 @@ class ControllerButton extends React.Component {
     }
 }
 
+class ControllerInput extends React.Component {
+    
+
+    send_key_to_server(event) {
+	let key = {'t': 'Servo', 'c': {'t': 'Left'}};
+	if (event.key == 'w') { 
+ 	    key.c.t = 'Up'; 
+	} 
+	else if (event.key == 'd') { 
+ 	    key.c.t = 'Right'; 
+	} 
+	else if (event.key == 'a') { 
+ 	    key.c.t = 'Left'; 
+	} 
+	else if (event.key == 's') { 
+ 	    key.c.t = 'Down'; 
+	} else { 
+ 	    // no valid key reject 
+ 	    // todo: display message to  user? 
+ 	    return; 
+	}
+
+	
+
+	if (this.props.connected) {
+	    const { websocket } = this.props
+	    console.log("Sending key");
+	    try {
+		websocket.send(JSON.stringify(key));
+	    } catch (error) {
+		console.log("Failed to send");
+		console.log(error);
+	    }
+	} else {
+	    console.log("not sending key");
+	}
+    }
+
+    componentDidMount() {
+	window.addEventListener('keydown', (e) => { this.send_key_to_server(e) });
+    }
+
+    componentWillUnmount() {
+
+    }
+
+    render() {
+	return (
+	    <textarea></textarea>
+	);
+    }
+}
+
 class ControllerApp extends React.Component {
     constructor(props) {
 	super(props);
@@ -215,8 +268,14 @@ class ControllerApp extends React.Component {
     build_websocket() {
 	// prob not needed. 
 	var that = this;
-	this.web_sock = new WebSocket('ws://' + window.location.host + '/ws');
-	this.web_sock.onmessage = function(event) {
+	var web_sock = new WebSocket('ws://' + window.location.host + '/ws');
+
+	web_sock.onopen = () => {
+	    console.log("Connected websocket");
+	    this.setState({web_sock: web_sock});
+	};
+	
+	web_sock.onmessage = function(event) {
 	    // todo: maybe move this to some sort of processing function?
 	    const response = JSON.parse(event.data);
 	    if (response.t == "ServoState") {
@@ -230,11 +289,11 @@ class ControllerApp extends React.Component {
 		    }
 		);
 	    }
-	}
+	};
 
-	this.web_sock.onclose = function(event) {
+	web_sock.onclose = function(event) {
 	    console.log('The connection has been closed successfully');
-	}
+	};
     }
 
     connect() {
@@ -245,16 +304,16 @@ class ControllerApp extends React.Component {
 	// todo should likely check return values from connecting to the server.
 	this.setState( {
 	    connected: true,
-	    button_text: 'Connect',
+	    button_text: 'Disconnect',
 	});
     }
 
     disconnect() {
 	console.log("Disconnecting to server ws");
-	this.web_sock.send(JSON.stringify({"t": "Disconnect"}));
+	this.state.web_sock.send(JSON.stringify({"t": "Disconnect"}));
 	this.setState({
 	    connected: false,
-	    button_text: 'Disconnect',
+	    button_text: 'Connect',
 	});
     }
     
@@ -277,6 +336,11 @@ class ControllerApp extends React.Component {
 		    
 		/>
 
+		<ControllerInput
+		    websocket = { this.state.web_sock }
+		    connected = { this.state.connected }
+		/>
+
 		<button onClick={ button_callback } className="controller-status-button btn btn-primary">
 		    { this.state.button_text }
 		</button>
@@ -293,7 +357,6 @@ class ControllerApp extends React.Component {
 	);
     }
 }
-
 
 const root = ReactDOM.createRoot(document.querySelector("#root"));
 root.render(
