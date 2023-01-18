@@ -2,6 +2,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import axios from 'axios';
 
 // Bootstrap CSS
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -160,8 +161,80 @@ class Game extends React.Component {
     }
 }
 
+// This is a gauge indicating the angle of a single servo
+class ServoGauge extends React.Component {
+    constructor(props) {
+	super(props);
+	// todo: constructor? should contain
+	// some reference to a servo id that is
+	// unique to the servo.
+    }
+    
+    render() {
+	const label_value = 'Servo ' + this.props.servo_id;
+	return (
+	    <div className="servo">
+
+		<div>{label_value}</div>
+		<textarea readOnly value={this.props.angle}></textarea>
+	    </div>
+	);
+    }
+}
+
+class ControllerApp extends React.Component {
+    constructor(props) {
+	super(props);
+	this.state = {
+	    angle_one: 0,
+	    angle_two: 0
+	};
+    }
+
+    componentDidMount() {
+	var ws = new WebSocket('ws://' + window.location.host + '/ws');
+	var that = this;
+	ws.onmessage = function(event) {
+
+	    // todo: maybe move this to some sort of processing function?
+	    const response = JSON.parse(event.data);
+	    if (response.t == "ServoState") {
+		const angle_one = response.c[0].angle;
+		const angle_two = response.c[1].angle;
+		that.setState(
+		    {
+			angle_one: angle_one,
+			angle_two: angle_two
+		    }
+		);
+	    }
+	}
+    }
+
+    render() {
+	// needs a disconnect button.
+	return (
+	    <div className="controller-app">
+		<ServoGauge
+		    angle={this.state.angle_one}
+		    servo_id={1}
+		/>
+		<ServoGauge
+		    angle={this.state.angle_two}
+		    servo_id={2}
+		/>
+	    </div>
+	);
+    }
+}
+
+
 const root = ReactDOM.createRoot(document.querySelector("#root"));
-root.render(<Game />);
+root.render(
+    <div>
+	<Game />
+	<ControllerApp />
+    </div>);
 
 
 import foo from './foo.js';
