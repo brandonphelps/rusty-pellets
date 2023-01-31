@@ -13,6 +13,9 @@ use axum::{
     Extension, Router,
 };
 
+
+use axum_extra::routing::SpaRouter;
+
 use futures::{sink::SinkExt, stream::StreamExt};
 
 use serde::{Deserialize, Serialize};
@@ -23,15 +26,20 @@ mod servo_controller;
 
 use servo_controller::{ServoController, ServoState};
 
-
-
 // use futures_util::{future, StreamExt, TryStreamExt};
 #[derive(Template)]
-#[template(path = "home.html")]
-struct HomeTemplate {}
+#[template(path = "index.html")]
+struct IndexTemplate {}
 
-async fn home() -> HomeTemplate {
-    HomeTemplate {}
+async fn index() -> IndexTemplate {
+    IndexTemplate {}
+}
+
+#[derive(Template)]
+#[template(path="tictactoe.html")]
+struct TicTacToeTemplate {}
+async fn tictactoe() -> TicTacToeTemplate {
+    TicTacToeTemplate {}
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -66,12 +74,11 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
             if let Message::Text(msg) = msg {
                 match tx.send(msg.clone()).await {
                     Ok(_) => {}
-                    Err(e) =>
-                    {
+                    Err(e) => {
                         println!("Failed to send message: {:?}", e);
-                        // when the reciver end has closed then we just terminate. 
+                        // when the reciver end has closed then we just terminate.
                         break;
-                    },
+                    }
                 }
             }
         }
@@ -84,22 +91,30 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
     loop {
         let s = state.lock().await.update();
         let response_json = serde_json::to_string(&s).unwrap();
-        sender
-            .send(Message::Text(response_json.to_string()))
-            .await
-            .unwrap();
+        if let Err(e) = sender.send(Message::Text(response_json.to_string())).await {
+            eprintln!("error while sending, halting");
+            break;
+        } else {
+            println!("Sent servo state as a response");
+        }
 
         let f = rx.try_recv();
         tokio::time::sleep(Duration::from_millis(100)).await;
-
         if let Ok(input_string) = f {
+            // todo change to  log debug.
+            println!("Got an input string: {:?}", input_string);
             if let Ok(command) = serde_json::from_str::<CommandInput>(&input_string) {
                 let response = state.lock().await.handle_command(command);
-
+                println!("Got command from server");
                 let response_json = serde_json::to_string(&response).unwrap();
-                sender.send(Message::Text(response_json.to_string())).await.unwrap();
+
+                sender
+                    .send(Message::Text(response_json.to_string()))
+                    .await
+                    .unwrap();
 
                 if let StateResponse::Disconnect = response {
+                    println!("Disconnecting");
                     break;
                 }
             }
@@ -112,7 +127,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
 #[serde(tag = "t", content = "c")]
 enum StateResponse {
     ServoState(Vec<ServoState>),
-    // if provided marks a successful disconnect. 
+    // if provided marks a successful disconnect.
     Disconnect,
     None,
 }
@@ -150,7 +165,7 @@ impl AppState {
             CommandInput::Disconnect => {
                 self.client_connected = false;
                 StateResponse::Disconnect
-            },
+            }
         }
     }
 }
@@ -168,28 +183,30 @@ async fn websocket_test(
     }
 }
 
-fn app(state: Arc<Mutex<AppState>>) -> Router
-{
+fn app(state: Arc<Mutex<AppState>>) -> Router {
     Router::new()
-        .route("/", get(home))
+        .route("/", get(index))
+        .route("/tictactoe", get(tictactoe))
         .route("/ws", get(websocket_test))
         .layer(Extension(state))
+        .merge(SpaRouter::new("/static", "static_gen"))
 }
-
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let handle = can::WindowsCANHandle::open(0).unwrap();
 
-    let state = Arc::new(Mutex::new(AppState::new(
-                                    ServoController::new(Box::new(handle), 2))));
+    let state = Arc::new(Mutex::new(AppState::new(ServoController::new(
+        Box::new(handle),
+        2,
+    ))));
 
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
 
-
     let app = app(state);
+
     axum::Server::bind(&"0.0.0.0:3000".parse()?)
         .serve(app.into_make_service())
         .await?;
@@ -207,13 +224,14 @@ mod tests {
 
     use std::net::{Ipv4Addr, SocketAddr};
 
-
     // test for ensuring that only a single controller connection
-    // is allowed. 
+    // is allowed.
     #[tokio::test]
     async fn single_controller_connection() {
-        let state = Arc::new(Mutex::new(AppState::new(
-            ServoController::new(Box::new(MockHandle::open(0).unwrap()), 2))));
+        let state = Arc::new(Mutex::new(AppState::new(ServoController::new(
+            Box::new(MockHandle::open(0).unwrap()),
+            2,
+        ))));
         let app = app(state);
 
         let server = axum::Server::bind(&SocketAddr::from((Ipv4Addr::LOCALHOST, 0)))
@@ -237,8 +255,10 @@ mod tests {
             .with_max_level(tracing::Level::TRACE)
             .init();
 
-        let state = Arc::new(Mutex::new(AppState::new(
-            ServoController::new(Box::new(MockHandle::open(0).unwrap()), 2))));
+        let state = Arc::new(Mutex::new(AppState::new(ServoController::new(
+            Box::new(MockHandle::open(0).unwrap()),
+            2,
+        ))));
 
         let local_s = state.clone();
 
@@ -252,8 +272,12 @@ mod tests {
             .await
             .unwrap();
 
-        socket.send(tungstenite::Message::text(serde_json::to_string(&CommandInput::Disconnect).unwrap()))
-            .await.unwrap();
+        socket
+            .send(tungstenite::Message::text(
+                serde_json::to_string(&CommandInput::Disconnect).unwrap(),
+            ))
+            .await
+            .unwrap();
 
         tokio::time::sleep(Duration::from_secs(2)).await;
 
@@ -264,13 +288,15 @@ mod tests {
 
     #[test]
     fn app_state_update() {
-        let mut state = AppState::new(
-            ServoController::new(Box::new(MockHandle::open(0).unwrap()), 2));
+        let mut state = AppState::new(ServoController::new(
+            Box::new(MockHandle::open(0).unwrap()),
+            2,
+        ));
         let update = state.update();
         match update {
             StateResponse::ServoState(f) => {
                 assert_eq!(f.len(), 2);
-            },
+            }
             StateResponse::None => assert!(false),
             StateResponse::Disconnect => assert!(false),
         }
@@ -278,31 +304,35 @@ mod tests {
 
     #[test]
     fn app_state_disconnect() {
-        let mut state = AppState::new(
-            ServoController::new(Box::new(MockHandle::open(0).unwrap()), 2));
+        let mut state = AppState::new(ServoController::new(
+            Box::new(MockHandle::open(0).unwrap()),
+            2,
+        ));
         let update = state.handle_command(CommandInput::Disconnect);
         assert_eq!(state.client_connected, false);
-        
+
         match update {
             StateResponse::ServoState(_) => assert!(false),
             StateResponse::Disconnect => assert!(true),
             StateResponse::None => assert!(false),
         }
-        // how to do the equvalent of this without partial eq. 
+        // how to do the equvalent of this without partial eq.
         // assert_eq!(update, StateResponse::Disconnect);
     }
 
     #[test]
     fn app_state_servo_up() {
-        let mut state = AppState::new(
-            ServoController::new(Box::new(MockHandle::open(0).unwrap()), 2));
+        let mut state = AppState::new(ServoController::new(
+            Box::new(MockHandle::open(0).unwrap()),
+            2,
+        ));
         let update = state.handle_command(CommandInput::Servo(ControllerInput::Up));
         match update {
             StateResponse::ServoState(_) => assert!(false),
             StateResponse::Disconnect => assert!(false),
             StateResponse::None => assert!(true),
         }
-        // how to do the equvalent of this without partial eq. 
+        // how to do the equvalent of this without partial eq.
         // assert_eq!(update, StateResponse::Disconnect);
     }
 
@@ -317,5 +347,14 @@ mod tests {
         let expected_output = r#"{"t":"Servo","c":{"t":"Right"}}"#;
         let k = serde_json::to_string(&f).unwrap();
         assert_eq!(k, expected_output);
+    }
+
+    #[test]
+    fn test_command_disconnect() {
+        let f = CommandInput::Disconnect;
+        let expected_output = r#"{"t":"Disconnect"}"#;
+        let k = serde_json::to_string(&f).unwrap();
+        assert_eq!(k, expected_output);
+
     }
 }

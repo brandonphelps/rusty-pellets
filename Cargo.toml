@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 axum = {version = "0.6.2", features = ["ws"] }
 axum-core = "0.3"
+axum-extra = { version = "0.4.2", features = ["spa"] }
 
 toml = "0.5.10"
 
