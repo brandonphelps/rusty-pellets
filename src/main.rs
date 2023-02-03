@@ -110,16 +110,19 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
 
                 sender
                     .send(Message::Text(response_json.to_string()))
-                    .await
-                    .unwrap();
+                    .await;
 
                 if let StateResponse::Disconnect = response {
                     println!("Disconnecting");
                     break;
                 }
             }
+        } else {
+            println!("error occured");
         }
     }
+
+    state.lock().await.client_connected = false;
 }
 
 // messages that are sent back to the client.
