@@ -5,3 +5,10 @@
 /static_gen/
 /target
 /node_modules/
+
+MegaGunController/GunControllerMega_ert_rtw
+
+MegaGunController/GunControllerMega.elf
+MegaGunController/GunControllerMega.hex
+MegaGunController/slprj/ert/
+MegaGunController/GunControllerMega.slx.autosave
