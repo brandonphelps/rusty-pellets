@@ -18,7 +18,11 @@ pub struct ServoState {
 
 impl ServoState {
     pub fn new(id: u8) -> Self {
-        Self { id, angle: 0 }
+        Self {
+            id, angle: 0,
+            up_pressed: false,
+            down_pressed: false,
+        }
     }
 }
 
@@ -77,12 +81,6 @@ impl ServoController {
             ControllerInput::Right => self.right(),
             ControllerInput::Up => self.up(),
             ControllerInput::Down => self.down(),
-            ControllerInput::Reset => {
-                self.servos[0].up_pressed = false;
-                self.servos[0].down_pressed = false;
-                self.servos[1].up_pressed = false;
-                self.servos[1].down_pressed = false;
-            }
         }
     }
 
@@ -106,21 +104,21 @@ impl ServoController {
             }
         }
 
-        let servo_command: u16 = 0x0;
+        let mut servo_command: u16 = 0x0;
         // send out servo input values
         if self.servos[0].up_pressed {
             servo_command |= 0x1;
-        } else if self.servo[0].down_pressed {
+        } else if self.servos[0].down_pressed {
             servo_command |= 0x2;
         }
 
         if self.servos[1].up_pressed {
             servo_command |= 0x4;
-        } else if self.servo[1].down_pressed {
+        } else if self.servos[1].down_pressed {
             servo_command |= 0x8;
         }
             
-        self.handle.write(&CANMessage::new(0x200, servo_command.to_le_bytes(), false));
+        self.handle.write(&CANMessage::new(0x200, &servo_command.to_le_bytes(), false));
 
         Ok(())
     }

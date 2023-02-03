@@ -91,7 +91,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
     loop {
         let s = state.lock().await.update();
         let response_json = serde_json::to_string(&s).unwrap();
-        if let Err(e) = sender.send(Message::Text(response_json.to_string())).await {
+        if let Err(_e) = sender.send(Message::Text(response_json.to_string())).await {
             eprintln!("error while sending, halting");
             break;
         } else {
