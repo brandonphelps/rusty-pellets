@@ -205,10 +205,10 @@ class ControllerState {
     constructor() {
 	this.state = {
 	    input_state: {
-		'up': 0,
-		'down': 0,
-		'left': 0,
-		'right': 0,
+		'up': false,
+		'down': false,
+		'left': false,
+		'right': false,
 	    },
 	};
 	// todo: ensure this gets cleaned up.
@@ -216,37 +216,19 @@ class ControllerState {
 	window.addEventListener('keyup', (e) => { this.key_up_update(e) });
     }
 
-    send_input_to_server() {
-	// convert input state to input for server. 
-	let key = {'t': 'Servo', 'c': {'t': 'Left'}};
-	key.c.t = 'Down'; 
-	if (this.props.connected) {
-	    const { websocket } = this.props
-	    console.log("Sending key");
-	    try {
-		websocket.send(JSON.stringify(key));
-	    } catch (error) {
-		console.log("Failed to send");
-		console.log(error);
-	    }
-	} else {
-	    console.log("not sending key");
-	}
-    }
-
     key_down_update(event) {
 	console.log("Key down event: " + JSON.stringify(this.state));
 	if (event.key == 'w') { 
-	    this.state.input_state.up = 1;
+	    this.state.input_state.up = true;
 	} 
 	else if (event.key == 'd') { 
-	    this.state.input_state.down = 1;
+	    this.state.input_state.down = true;
 	} 
 	else if (event.key == 'a') { 
-	    this.state.input_state.left = 1;
+	    this.state.input_state.left = true;
 	} 
 	else if (event.key == 's') { 
-	    this.state.input_state.right = 1;
+	    this.state.input_state.right = true;
 	} else { 
  	    // no valid key reject 
  	    // todo: display message to  user? 
@@ -257,16 +239,16 @@ class ControllerState {
     key_up_update(event) {
 	console.log("Key up event: " + JSON.stringify(this.state));
 	if (event.key == 'w') { 
-	    this.state.input_state.up = 0;
+	    this.state.input_state.up = false;
 	} 
 	else if (event.key == 'd') { 
-	    this.state.input_state.down = 0;
+	    this.state.input_state.down = false;
 	} 
 	else if (event.key == 'a') { 
-	    this.state.input_state.left = 0;
+	    this.state.input_state.left = false;
 	} 
 	else if (event.key == 's') { 
-	    this.state.input_state.right = 0;
+	    this.state.input_state.right = false;
 	} else { 
  	    // no valid key reject 
  	    // todo: display message to  user? 
@@ -297,12 +279,20 @@ class ControllerApp extends React.Component {
 	    console.log("Connected websocket");
 	    this.setState({web_sock: web_sock});
 
-
 	    // start timer on connect, this will continuously send
 	    // the recorded key state. 
 	    this.timer = setInterval(() => {
 		console.log("Current state " + JSON.stringify(this.controller_state));
-	    }, 1000);
+
+		let input_state = {'t': 'Servo', 'c': this.controller_state.state.input_state};
+		try {
+
+		    this.state.web_sock.send(JSON.stringify(input_state));
+		} catch (error) {
+		    console.log("Failed to send");
+		    console.log(error);
+		}
+	    }, 200);
 	};
 	
 	web_sock.onmessage = function(event) {

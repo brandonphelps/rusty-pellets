@@ -99,25 +99,34 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
 
         let f = rx.try_recv();
         tokio::time::sleep(Duration::from_millis(100)).await;
-        if let Ok(input_string) = f {
-            // todo change to  log debug.
-            println!("Got an input string: {:?}", input_string);
-            if let Ok(command) = serde_json::from_str::<CommandInput>(&input_string) {
-                let response = state.lock().await.handle_command(command);
-                println!("Got command from server");
-                let response_json = serde_json::to_string(&response).unwrap();
+        match f {
+            Ok(input_string) => { 
+                // todo change to log debug.
+                println!("Got an input string: {:?}", input_string);
+                if let Ok(command) = serde_json::from_str::<CommandInput>(&input_string) {
+                    let response = state.lock().await.handle_command(command);
+                    println!("Got command from server");
+                    let response_json = serde_json::to_string(&response).unwrap();
 
-                sender
-                    .send(Message::Text(response_json.to_string()))
-                    .await;
+                    sender
+                        .send(Message::Text(response_json.to_string()))
+                        .await;
 
-                if let StateResponse::Disconnect = response {
-                    println!("Disconnecting");
-                    break;
+                    if let StateResponse::Disconnect = response {
+                        println!("Disconnecting");
+                        break;
+                    }
+                } else {
+                    println!("failed to deserialize input");
                 }
+            },
+            // do nothing if we don't receive anything. 
+            Err(Empty) => {
             }
-        } else {
-            println!("error occured");
+            Err(f) => {
+                println!("error occured: {:?}", f);
+                
+            }
         }
     }
 
