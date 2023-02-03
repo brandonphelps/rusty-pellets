@@ -202,29 +202,22 @@ class ControllerButton extends React.Component {
 }
 
 class ControllerInput extends React.Component {
-    
+    constructor(props) {
+	super(props);
+	this.state {
+	    input_state: {
+		'up': 0,
+		'down': 0,
+		'left': 0,
+		'right': 0,
+	    },
+	};
+    }
 
-    send_key_to_server(event) {
+    send_input_to_server() {
+	// convert input state to input for server. 
 	let key = {'t': 'Servo', 'c': {'t': 'Left'}};
-	if (event.key == 'w') { 
- 	    key.c.t = 'Up'; 
-	} 
-	else if (event.key == 'd') { 
- 	    key.c.t = 'Right'; 
-	} 
-	else if (event.key == 'a') { 
- 	    key.c.t = 'Left'; 
-	} 
-	else if (event.key == 's') { 
- 	    key.c.t = 'Down'; 
-	} else { 
- 	    // no valid key reject 
- 	    // todo: display message to  user? 
- 	    return; 
-	}
-
-	
-
+	key.c.t = 'Down'; 
 	if (this.props.connected) {
 	    const { websocket } = this.props
 	    console.log("Sending key");
@@ -239,8 +232,49 @@ class ControllerInput extends React.Component {
 	}
     }
 
+    key_down_update(event) {
+	if (event.key == 'w') { 
+	    this.setState({'input': { 'up': 1 }});
+	} 
+	else if (event.key == 'd') { 
+	    this.setState({'input': { 'down': 1 }});
+	} 
+	else if (event.key == 'a') { 
+	    this.setState({'input': { 'left': 1 }});
+	} 
+	else if (event.key == 's') { 
+	    this.setState({'input': { 'right': 1 }});
+ 	 
+	} else { 
+ 	    // no valid key reject 
+ 	    // todo: display message to  user? 
+ 	    return; 
+	}
+    }
+
+    key_up_update(event) {
+	if (event.key == 'w') { 
+	    this.setState({'input': { 'up': 0 }});
+	} 
+	else if (event.key == 'd') { 
+	    this.setState({'input': { 'down': 0 }});
+	} 
+	else if (event.key == 'a') { 
+	    this.setState({'input': { 'left': 0 }});
+	} 
+	else if (event.key == 's') { 
+	    this.setState({'input': { 'right': 0 }});
+ 	 
+	} else { 
+ 	    // no valid key reject 
+ 	    // todo: display message to  user? 
+ 	    return; 
+	}
+    }
+
     componentDidMount() {
-	window.addEventListener('keydown', (e) => { this.send_key_to_server(e) });
+	window.addEventListener('keydown', (e) => { this.key_down_update(e) });
+	window.addEventListener('keyup', (e) => { this.key_up_update(e) });
     }
 
     componentWillUnmount() {
