@@ -201,10 +201,9 @@ class ControllerButton extends React.Component {
     }
 }
 
-class ControllerInput extends React.Component {
-    constructor(props) {
-	super(props);
-	this.state {
+class ControllerState {
+    constructor() {
+	this.state = {
 	    input_state: {
 		'up': 0,
 		'down': 0,
@@ -212,6 +211,9 @@ class ControllerInput extends React.Component {
 		'right': 0,
 	    },
 	};
+	// todo: ensure this gets cleaned up.
+	window.addEventListener('keydown', (e) => { this.key_down_update(e) });
+	window.addEventListener('keyup', (e) => { this.key_up_update(e) });
     }
 
     send_input_to_server() {
@@ -233,18 +235,18 @@ class ControllerInput extends React.Component {
     }
 
     key_down_update(event) {
+	console.log("Key down event: " + JSON.stringify(this.state));
 	if (event.key == 'w') { 
-	    this.setState({'input': { 'up': 1 }});
+	    this.state.input_state.up = 1;
 	} 
 	else if (event.key == 'd') { 
-	    this.setState({'input': { 'down': 1 }});
+	    this.state.input_state.down = 1;
 	} 
 	else if (event.key == 'a') { 
-	    this.setState({'input': { 'left': 1 }});
+	    this.state.input_state.left = 1;
 	} 
 	else if (event.key == 's') { 
-	    this.setState({'input': { 'right': 1 }});
- 	 
+	    this.state.input_state.right = 1;
 	} else { 
  	    // no valid key reject 
  	    // todo: display message to  user? 
@@ -253,18 +255,18 @@ class ControllerInput extends React.Component {
     }
 
     key_up_update(event) {
+	console.log("Key up event: " + JSON.stringify(this.state));
 	if (event.key == 'w') { 
-	    this.setState({'input': { 'up': 0 }});
+	    this.state.input_state.up = 0;
 	} 
 	else if (event.key == 'd') { 
-	    this.setState({'input': { 'down': 0 }});
+	    this.state.input_state.down = 0;
 	} 
 	else if (event.key == 'a') { 
-	    this.setState({'input': { 'left': 0 }});
+	    this.state.input_state.left = 0;
 	} 
 	else if (event.key == 's') { 
-	    this.setState({'input': { 'right': 0 }});
- 	 
+	    this.state.input_state.right = 0;
 	} else { 
  	    // no valid key reject 
  	    // todo: display message to  user? 
@@ -272,20 +274,15 @@ class ControllerInput extends React.Component {
 	}
     }
 
-    componentDidMount() {
-	window.addEventListener('keydown', (e) => { this.key_down_update(e) });
-	window.addEventListener('keyup', (e) => { this.key_up_update(e) });
-    }
+    // componentWillUnmount() {
+    // 	clearInterval(this.timer);
+    // }
 
-    componentWillUnmount() {
-
-    }
-
-    render() {
-	return (
-	    <textarea></textarea>
-	);
-    }
+    // render() {
+    // 	return (
+    // 	    <textarea></textarea>
+    // 	);
+    // }
 }
 
 class ControllerApp extends React.Component {
@@ -297,6 +294,8 @@ class ControllerApp extends React.Component {
 	    connected: false,
 	    button_text: 'Connect',
 	};
+
+	this.controller_state = new ControllerState();
     }
 
     build_websocket() {
@@ -307,6 +306,13 @@ class ControllerApp extends React.Component {
 	web_sock.onopen = () => {
 	    console.log("Connected websocket");
 	    this.setState({web_sock: web_sock});
+
+
+	    // start timer on connect, this will continuously send
+	    // the recorded key state. 
+	    this.timer = setInterval(() => {
+		console.log("Current state " + JSON.stringify(this.controller_state));
+	    }, 1000);
 	};
 	
 	web_sock.onmessage = function(event) {
@@ -319,7 +325,6 @@ class ControllerApp extends React.Component {
 		    {
 			angle_one: angle_one,
 			angle_two: angle_two,
-			
 		    }
 		);
 	    }
@@ -327,6 +332,8 @@ class ControllerApp extends React.Component {
 
 	web_sock.onclose = function(event) {
 	    console.log('The connection has been closed successfully');
+	    // todo: do the same sort of disconnect logic here.
+	    // however since it closed we don't want to do web_sock stuff.
 	};
     }
 
@@ -344,6 +351,7 @@ class ControllerApp extends React.Component {
 
     disconnect() {
 	console.log("Disconnecting to server ws");
+	clearInterval(this.timer);
 	this.state.web_sock.send(JSON.stringify({"t": "Disconnect"}));
 	this.setState({
 	    connected: false,
@@ -352,7 +360,7 @@ class ControllerApp extends React.Component {
     }
     
     componentDidMount() {
-	// this.build_websocket();
+	
     }
 
     render() {
@@ -370,10 +378,7 @@ class ControllerApp extends React.Component {
 		    
 		/>
 
-		<ControllerInput
-		    websocket = { this.state.web_sock }
-		    connected = { this.state.connected }
-		/>
+		<textarea></textarea>
 
 		<button onClick={ button_callback } className="controller-status-button btn btn-primary">
 		    { this.state.button_text }
