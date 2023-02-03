@@ -273,16 +273,6 @@ class ControllerState {
  	    return; 
 	}
     }
-
-    // componentWillUnmount() {
-    // 	clearInterval(this.timer);
-    // }
-
-    // render() {
-    // 	return (
-    // 	    <textarea></textarea>
-    // 	);
-    // }
 }
 
 class ControllerApp extends React.Component {

@@ -43,12 +43,11 @@ async fn tictactoe() -> TicTacToeTemplate {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "t", content = "c")]
-pub enum ControllerInput {
-    Left,
-    Right,
-    Up,
-    Down,
+pub struct ControllerInput {
+    up: bool,
+    down: bool,
+    left: bool,
+    right: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -329,7 +328,13 @@ mod tests {
             Box::new(MockHandle::open(0).unwrap()),
             2,
         ));
-        let update = state.handle_command(CommandInput::Servo(ControllerInput::Up));
+        let update = state.handle_command(CommandInput::Servo(ControllerInput {
+            up: true,
+            down: true,
+            left: true,
+            right: false,
+        }));
+
         match update {
             StateResponse::ServoState(_) => assert!(false),
             StateResponse::Disconnect => assert!(false),
@@ -341,13 +346,14 @@ mod tests {
 
     #[test]
     fn test_command_serde() {
-        let f = CommandInput::Servo(ControllerInput::Left);
-        let expected_output = r#"{"t":"Servo","c":{"t":"Left"}}"#;
-        let k = serde_json::to_string(&f).unwrap();
-        assert_eq!(k, expected_output);
+        let f = CommandInput::Servo(ControllerInput {
+            up: true,
+            down: false,
+            left: true,
+            right: false,
+        });
 
-        let f = CommandInput::Servo(ControllerInput::Right);
-        let expected_output = r#"{"t":"Servo","c":{"t":"Right"}}"#;
+        let expected_output = r#"{"t":"Servo","c":{"up":true,"down":false,"left":true,"right":false}}"#;
         let k = serde_json::to_string(&f).unwrap();
         assert_eq!(k, expected_output);
     }

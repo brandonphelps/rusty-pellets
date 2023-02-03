@@ -47,41 +47,15 @@ impl ServoController {
         Self { handle, servos }
     }
 
-    pub fn up(&mut self) -> Result<(), ControllerError> {
-        if ! self.servos[0].down_pressed {
-            self.servos[0].up_pressed = true;
-        }
-        Ok(())
-    }
-
-    pub fn down(&mut self) -> Result<(), ControllerError> {
-        if ! self.servos[0].up_pressed {
-            self.servos[0].down_pressed = true;
-        }
-        Ok(())
-    }
-    pub fn left(&mut self) -> Result<(), ControllerError> {
-        if ! self.servos[0].up_pressed {
-            self.servos[0].down_pressed = true;
-        }
-        Ok(())
-    }
-
-    pub fn right(&mut self) -> Result<(), ControllerError> {
-        if ! self.servos[0].down_pressed {
-            self.servos[0].up_pressed = true;
-        }
-
-        Ok(())
-    }
-
     pub fn handle_command(&mut self, command: ControllerInput) -> Result<(), ControllerError> {
-        match command {
-            ControllerInput::Left => self.left(),
-            ControllerInput::Right => self.right(),
-            ControllerInput::Up => self.up(),
-            ControllerInput::Down => self.down(),
-        }
+
+        self.servos[0].up_pressed = command.up;
+        self.servos[0].down_pressed = command.down;
+
+        self.servos[1].up_pressed = command.left;
+        self.servos[1].down_pressed = command.right;
+
+        Ok(())
     }
 
     //
