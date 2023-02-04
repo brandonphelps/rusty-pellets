@@ -194,18 +194,45 @@ async fn websocket_test(
     }
 }
 
+
+async fn image_handle_socket(
+    mut socket: WebSocket
+) {
+    println!("image handle socket got opened");
+    let image = [0u8; 200 * 3];
+
+    loop {
+        socket.send(Message::Binary(image.to_vec())).await;
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    };
+}
+
+
+async fn websocket_image_data(
+    ws: WebSocketUpgrade,
+) -> Response {
+    ws.on_upgrade(|socket| image_handle_socket(socket)).into_response()
+}
+
+
 fn app(state: Arc<Mutex<AppState>>) -> Router {
     Router::new()
         .route("/", get(index))
         .route("/tictactoe", get(tictactoe))
         .route("/ws", get(websocket_test))
+        .route("/ws_image", get(websocket_image_data))
         .layer(Extension(state))
         .merge(SpaRouter::new("/static", "static_gen"))
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+
+    #[cfg(target_os = "windows")]
     let handle = can::WindowsCANHandle::open(0).unwrap();
+
+    #[cfg(not(target_os = "windows"))]
+    let handle = can::MockHandle::open(0).unwrap();
 
     let state = Arc::new(Mutex::new(AppState::new(ServoController::new(
         Box::new(handle),

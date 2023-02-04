@@ -455,15 +455,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fad582f4b9e86b6caa621cabeb0963332d92eea04729ab12892c2533951e6440"
 
 [[package]]
-name = "kvaser-sys"
-version = "0.1.0"
-dependencies = [
- "bitflags",
- "libc",
- "log",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -788,7 +779,6 @@ dependencies = [
  "axum-extra",
  "futures",
  "futures-util",
- "kvaser-sys",
  "serde",
  "serde_json",
  "tokio",

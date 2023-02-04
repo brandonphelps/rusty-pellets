@@ -1,11 +1,38 @@
 {% extends "base.html" %}
 
 {% block content %}
+
 <div id="root"></div>
+<canvas id="tutorial" width="150" height="150"></canvas>
 
 {% endblock content %}
 
+
 {% block script_content %}
+
+<script>
+
+  const canvas = document.querySelector("#tutorial");
+  const ctx = canvas.getContext("2d");
+  const image_data = ctx.getImageData;
+
+  var web_sock = new WebSocket('ws://' + window.location.host + '/ws_image');
+
+  web_sock.onopen = () => {
+      console.log("Image data websocket opened");
+  }
+
+  web_sock.onmessage = function(event) {
+      const data = event.data;
+      console.log("Got message");
+  }
+
+  web_sock.onclose = function(event) {
+      console.log("image data websocket closed");
+  }
+  
+
+</script>
 
 {% endblock script_content %}
 

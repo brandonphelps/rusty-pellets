@@ -160,6 +160,8 @@ class Game extends React.Component {
     }
 }
 
+
+
 // This is a gauge indicating the angle of a single servo
 class ServoGauge extends React.Component {
     constructor(props) {
@@ -357,7 +359,6 @@ class ControllerApp extends React.Component {
 		<ConnectedStatusGuage
 		    
 		/>
-
 		<textarea></textarea>
 
 		<button onClick={ button_callback } className="controller-status-button btn btn-primary">
@@ -385,3 +386,5 @@ root.render(
 	<br />
 	<Game />
     </div>);
+
+
