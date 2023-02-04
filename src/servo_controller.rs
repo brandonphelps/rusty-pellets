@@ -11,11 +11,18 @@ use serde::{Deserialize, Serialize};
 pub struct ServoState {
     pub id: u8,
     pub angle: u8,
+    // each servo should have its own "up"/"down"
+    pub up_pressed: bool,
+    pub down_pressed: bool,
 }
 
 impl ServoState {
     pub fn new(id: u8) -> Self {
-        Self { id, angle: 0 }
+        Self {
+            id, angle: 0,
+            up_pressed: false,
+            down_pressed: false,
+        }
     }
 }
 
@@ -40,44 +47,21 @@ impl ServoController {
         Self { handle, servos }
     }
 
-    pub fn up(&mut self) -> Result<(), ControllerError> {
-        println!("up");
-        let _response = self.handle.write(&CANMessage::new(0x200, &[0x0], false));
-        Ok(())
-    }
-
-    pub fn down(&mut self) -> Result<(), ControllerError> {
-        println!("down");
-        let _response = self.handle.write(&CANMessage::new(0x200, &[0x3], false));
-        Ok(())
-    }
-    pub fn left(&mut self) -> Result<(), ControllerError> {
-        println!("left");
-        let _response = self.handle.write(&CANMessage::new(0x200, &[0x2], false));
-        Ok(())
-    }
-
-    pub fn right(&mut self) -> Result<(), ControllerError> {
-        println!("right");
-        let _response = self.handle.write(&CANMessage::new(0x200, &[0x1], false));
-        Ok(())
-    }
-
     pub fn handle_command(&mut self, command: ControllerInput) -> Result<(), ControllerError> {
-        match command {
-            ControllerInput::Left => self.left(),
-            ControllerInput::Right => self.right(),
-            ControllerInput::Up => self.up(),
-            ControllerInput::Down => self.down(),
-        }
+
+        self.servos[0].up_pressed = command.up;
+        self.servos[0].down_pressed = command.down;
+
+        self.servos[1].up_pressed = command.left;
+        self.servos[1].down_pressed = command.right;
+
+        Ok(())
     }
 
     //
     pub fn update(&mut self) -> Result<(), ControllerError> {
         // read in can message and handle incoming can messages.
         if let Ok(Some(msg)) = self.handle.read() {
-            println!("Got a message: {:?}", msg);
-
             if msg.dlc < 1 {
                 println!("Message must be of atleast length 1");
                 return Err(ControllerError::InvalidMessage);
@@ -93,6 +77,22 @@ impl ServoController {
                 }
             }
         }
+
+        let mut servo_command: u16 = 0x0;
+        // send out servo input values
+        if self.servos[0].up_pressed {
+            servo_command |= 0x1;
+        } else if self.servos[0].down_pressed {
+            servo_command |= 0x2;
+        }
+
+        if self.servos[1].up_pressed {
+            servo_command |= 0x4;
+        } else if self.servos[1].down_pressed {
+            servo_command |= 0x8;
+        }
+            
+        self.handle.write(&CANMessage::new(0x200, &servo_command.to_le_bytes(), false));
 
         Ok(())
     }
