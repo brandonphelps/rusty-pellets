@@ -21,17 +21,31 @@
   web_sock.onopen = () => {
       console.log("Image data websocket opened");
   }
+  var temp_data;
 
   web_sock.onmessage = function(event) {
-      const data = event.data;
-      console.log("Got message");
+      var data = event.data;
+      temp_data = event;
+
+      const out_data = JSON.parse(event.data);
+      const height = out_data.height;
+      const width = out_data.width;
+
+      const imageData = ctx.getImageData(0, 0, width, height);
+      // this does nothing. 
+      // imageData.data = out_data.data;
+
+      // why is this needed?
+      for(let i = 0; i < out_data.data.length; i += 1) {
+	  imageData.data[i] = out_data.data[i];
+      }
+
+      ctx.putImageData(imageData, 0, 0);
   }
 
   web_sock.onclose = function(event) {
       console.log("image data websocket closed");
   }
-  
-
 </script>
 
 {% endblock script_content %}

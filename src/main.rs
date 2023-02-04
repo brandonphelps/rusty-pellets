@@ -199,10 +199,35 @@ async fn image_handle_socket(
     mut socket: WebSocket
 ) {
     println!("image handle socket got opened");
-    let image = [0u8; 200 * 3];
+    const width: u16 = 360;
+    const height: u16 = 480;
+    let size = width as usize * height as usize * 4;
+    let mut image = Vec::with_capacity(size as usize);
+
+    let mut i = 0;
+    while (i < size) {
+        image.push(0);
+        image.push(0);
+        image.push(0);
+        image.push(255);
+        i+= 4;
+    }
+
+    #[derive(Serialize, Deserialize)]
+    struct tmp {
+        width: u16,
+        height: u16,
+        data: Vec<u8>,
+    }
 
     loop {
-        socket.send(Message::Binary(image.to_vec())).await;
+        let f = serde_json::to_string(&tmp {
+            width,
+            height,
+            data: image.to_vec()}).unwrap();
+        println!("Sending data");
+        // todo: see if we can remove Text and use Binary. 
+        socket.send(Message::Text(f)).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     };
 }
