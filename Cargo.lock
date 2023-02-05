@@ -1305,6 +1305,7 @@ dependencies = [
  "futures-util",
  "image",
  "kinect-control",
+ "once_cell",
  "serde",
  "serde_json",
  "tokio",

@@ -24,6 +24,7 @@
   var temp_data;
 
   web_sock.onmessage = function(event) {
+      console.log("Got message from server");
       var data = event.data;
       temp_data = event;
 
@@ -35,10 +36,26 @@
       // this does nothing. 
       // imageData.data = out_data.data;
 
+      console.log("data: ");
+      console.log(out_data.data[0]);
+      console.log(out_data.data[1]);
+      console.log(out_data.data[2]);
+      console.log(out_data.data[3]);
       // why is this needed?
-      for(let i = 0; i < out_data.data.length; i += 1) {
-	  imageData.data[i] = out_data.data[i];
+      let j = 0;
+      for(let i = 0; i < out_data.data.length; i += 3) {
+	  imageData.data[j] = out_data.data[i];
+	  imageData.data[j+1] = out_data.data[i+1];
+	  imageData.data[j+2] = out_data.data[i+2];
+	  imageData.data[j+3] = 255;
+	  j += 4;
       }
+      
+      console.log("data: ");
+      console.log(imageData.data[0]);
+      console.log(imageData.data[1]);
+      console.log(imageData.data[2]);
+      console.log(imageData.data[3]);
 
       ctx.putImageData(imageData, 0, 0);
   }

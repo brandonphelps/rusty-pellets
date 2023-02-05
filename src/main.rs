@@ -152,7 +152,6 @@ struct AppState {
 
 impl AppState {
     pub fn new(controller: ServoController) -> Self {
-
         Self {
             controller,
             client_connected: false,
@@ -196,102 +195,70 @@ async fn websocket_test(
     }
 }
 
+// width = 640
+// height = 480
+// data bits per pixel 24
+// padding 0
+// frame rate 30
+
+const RGB_WIDTH: usize = 640;
+const RGB_HEIGHT: usize = 480;
+const RGB_BYTES_COUNT: usize = (RGB_WIDTH * RGB_HEIGHT * 3);
+
+// let bytes = 921600;
+// let width = 640;
+// let height = 480;
+
 extern "C" fn video_cb(
     dev: *mut freenect_device,
     data: *mut ::std::os::raw::c_void,
     timestamp: u32,
 ) {
-    println!("Video callback: {}", timestamp);
-
-    // todo: calculate size based on the various dimensions.
-
-    let bytes = 921600;
-    let width = 640;
-    let height = 480;
-
     unsafe {
-        let rgb_data: &[u8] = std::slice::from_raw_parts(data as *mut u8, bytes);
-        println!(
-            "Some data: ({}, {}, {})",
-            rgb_data[0], rgb_data[1], rgb_data[2]
-        );
-        // save_buffer_with_format("myimg.jpg", rgb_data, width, height, image::ColorType::Rgb8, image::ImageFormat::Jpeg).unwrap();
-    }
-
-    // The following three lines simply load a test image and convert it into buffer
-    // let (width, height) = (img.width(), img.height());
-    // let img_byte_vec = img.into_raw();
-    // // The next line is what you want
-}
-
-extern "C" fn depth_cb(
-    dev: *mut freenect_device,
-    data: *mut ::std::os::raw::c_void,
-    timestamp: u32,
-) {
-    println!("Video callback: {}", timestamp);
-
-    // todo: calculate size based on the various dimensions.
-    let bytes = 921600;
-    let width = 640;
-    let height = 480;
-
-    unsafe {
-        let rgb_data: &[u8] = std::slice::from_raw_parts(data as *mut u8, 100);
-        println!("Depth: {:?}", rgb_data);
-    }
-
-    // The following three lines simply load a test image and convert it into buffer
-    // let (width, height) = (img.width(), img.height());
-    // let img_byte_vec = img.into_raw();
-    // // The next line is what you want
+        let rgb_data: *mut u8 = data as *mut _;
+        let mut back_data = &mut back_rgb.lock().unwrap();
+        // todo: should really be able to do memcpy
+        let mut i = 0;
+        // todo: is this the fastest way to copy data? 
+        //for i in 0..RGB_BYTES_COUNT {
+        while i < RGB_BYTES_COUNT {
+            back_data[i] = *(rgb_data.add(i));
+            back_data[i+1] = *(rgb_data.add(i+1));
+            back_data[i+2] = *(rgb_data.add(i+2));
+            i += 3;
+        }
+    };
 }
 
 async fn image_handle_socket(mut socket: WebSocket, state: Arc<Mutex<AppState>>) {
     println!("image handle socket got opened");
-    let width: u32 = 360;
-    let height: u32 = 480;
-    let size = width as usize * height as usize * 4;
-    let mut image = Vec::with_capacity(size as usize);
-
-    // let j = image::open("myimage.jpg").unwrap();
-    // let width = j.width();
-    // let height = j.height();
-    // let tmp = j.to_rgba8();
-
-    let mut i = 0;
-    while (i < size) {
-        image.push(0);
-        image.push(0);
-        image.push(0);
-        image.push(255);
-        i+= 4;
-    }
-
-    // let data = j.to_rgba8().to_vec();
-    // println!("{:?}", &data[..32]);
-
     #[derive(Serialize, Deserialize)]
     struct tmp {
-        width: u32,
-        height: u32,
+        width: usize,
+        height: usize,
         data: Vec<u8>,
     }
 
-    println!("Width: {}, Height: {}", width, height);
-
     loop {
-        //let data = j.to_rgba8().to_vec();
-        let data = image.to_vec();
-        let f = serde_json::to_string(&tmp {
-            width,
-            height,
-            data,
-        })
-        .unwrap();
+        let f = {
+            let back_d: &[u8] = &back_rgb.lock().unwrap();
+            tmp {
+                width: RGB_WIDTH,
+                height: RGB_HEIGHT,
+                data: back_d[..RGB_BYTES_COUNT].to_vec(),
+            }
+        };
+
+        println!("Sending data");
         // todo: see if we can remove Text and use Binary.
-        socket.send(Message::Text(f)).await.unwrap();
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        let send_ret = socket
+            .send(Message::Text(serde_json::to_string(&f).unwrap()))
+            .await
+            .unwrap();
+        println!("Send ret: {:?}", send_ret);
+
+        println!("Finished processing events");
+        tokio::time::sleep(std::time::Duration::from_millis(125)).await;
     }
 }
 
@@ -313,28 +280,50 @@ fn app(state: Arc<Mutex<AppState>>) -> Router {
         .merge(SpaRouter::new("/static", "static_gen"))
 }
 
-fn image_process_thread() {
+use once_cell::sync::Lazy;
 
+// static back_rgb: Lazy<std::sync::Mutex<[u8; 640 * 480 * 4]>> = Lazy::new(|| std::sync::Mutex::new([0u8; 640 * 480 * 4]));
+// static front_rgb: Lazy<std::sync::Mutex<[u8; 640 * 480 * 4]>> = Lazy::new(|| std::sync::Mutex::new([0u8; 640 * 480 * 4]));
+
+static back_rgb: Lazy<std::sync::Mutex<Vec<u8>>> =
+    Lazy::new(|| std::sync::Mutex::new(Vec::with_capacity(RGB_BYTES_COUNT)));
+static front_rgb: Lazy<std::sync::Mutex<Vec<u8>>> =
+    Lazy::new(|| std::sync::Mutex::new(Vec::with_capacity(RGB_BYTES_COUNT)));
+
+fn image_process_thread() {
     let kinect_context = FreenectContext::new();
     kinect_context.set_led(freenect_led_options_LED_BLINK_GREEN);
 
     let mut angle = 0.1;
 
     let r = kinect_context.set_video_mode();
+
     println!("Set video mode result: {}", r);
+
+    kinect_context.start_video();
 
     unsafe { freenect_set_video_callback(kinect_context.dev, Some(video_cb)) }
 
     loop {
-        println!("kinect Loop");
         let r = kinect_context.process_events();
     }
 }
 
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    {
+        let mut back_data = &mut back_rgb.lock().unwrap();
+        for i in 0..(RGB_BYTES_COUNT) {
+            back_data.push(0);
+        }
+    }
 
+    {
+        let mut back_data = &mut front_rgb.lock().unwrap();
+        for i in 0..(RGB_BYTES_COUNT) {
+            back_data.push(0);
+        }
+    }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_os = "windows")]
     let handle = can::WindowsCANHandle::open(0).unwrap();
 
@@ -346,9 +335,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         2,
     ))));
 
-
     let image_thread = std::thread::spawn(image_process_thread);
-    
 
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
@@ -356,9 +343,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = app(state);
 
-    axum::Server::bind(&"0.0.0.0:3001".parse()?)
-        .serve(app.into_make_service())
-        .await?;
+    let runtime = tokio::runtime::Runtime::new()?;
+
+    runtime.block_on(async {
+        axum::Server::bind(&"0.0.0.0:3001".parse().unwrap())
+            .serve(app.into_make_service())
+            .await
+            .unwrap();
+    });
 
     Ok(())
 }
@@ -514,3 +506,31 @@ mod tests {
         assert_eq!(k, expected_output);
     }
 }
+
+// extern "C" fn depth_cb(
+//     dev: *mut freenect_device,
+//     data: *mut ::std::os::raw::c_void,
+//     timestamp: u32,
+// ) {
+//     println!("depth callback: {}", timestamp);
+
+//     // todo: calculate size based on the various dimensions.
+
+//     let bytes = 921600;
+//     let width = 640;
+//     let height = 480;
+
+//     unsafe {
+//         let rgb_data: &[u8] = std::slice::from_raw_parts(data as *mut u8, bytes);
+//         println!(
+//             "Some data: ({}, {}, {})",
+//             rgb_data[0], rgb_data[1], rgb_data[2]
+//         );
+//         // save_buffer_with_format("myimg.jpg", rgb_data, width, height, image::ColorType::Rgb8, image::ImageFormat::Jpeg).unwrap();
+//     }
+
+//     // The following three lines simply load a test image and convert it into buffer
+//     // let (width, height) = (img.width(), img.height());
+//     // let img_byte_vec = img.into_raw();
+//     // // The next line is what you want
+// }
