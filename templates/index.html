@@ -31,17 +31,16 @@
       const out_data = JSON.parse(event.data);
       const height = out_data.height;
       const width = out_data.width;
+      // https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Pixel_manipulation_with_canvas
 
+      
       const imageData = ctx.getImageData(0, 0, width, height);
       // this does nothing. 
       // imageData.data = out_data.data;
-
-      console.log("data: ");
-      console.log(out_data.data[0]);
-      console.log(out_data.data[1]);
-      console.log(out_data.data[2]);
-      console.log(out_data.data[3]);
       // why is this needed?
+      // is there an ImageData that allows for an RGB vector?
+      // the out_data that we get from the server is in rgb
+      // format, hence 
       let j = 0;
       for(let i = 0; i < out_data.data.length; i += 3) {
 	  imageData.data[j] = out_data.data[i];
@@ -50,13 +49,6 @@
 	  imageData.data[j+3] = 255;
 	  j += 4;
       }
-      
-      console.log("data: ");
-      console.log(imageData.data[0]);
-      console.log(imageData.data[1]);
-      console.log(imageData.data[2]);
-      console.log(imageData.data[3]);
-
       ctx.putImageData(imageData, 0, 0);
   }
 

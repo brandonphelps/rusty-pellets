@@ -258,7 +258,7 @@ async fn image_handle_socket(mut socket: WebSocket, state: Arc<Mutex<AppState>>)
         println!("Send ret: {:?}", send_ret);
 
         println!("Finished processing events");
-        tokio::time::sleep(std::time::Duration::from_millis(125)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     }
 }
 
