@@ -1,5 +1,11 @@
 use std::{sync::Arc, time::Duration};
 
+use kinect_control::freenect_sys::{
+    freenect_device, freenect_led_options_LED_BLINK_GREEN, freenect_set_depth_callback,
+    freenect_set_video_callback,
+};
+
+use kinect_control::FreenectContext;
 // this pulls in some of functions
 use askama::Template;
 use axum::{
@@ -12,7 +18,6 @@ use axum::{
     routing::get,
     Extension, Router,
 };
-
 
 use axum_extra::routing::SpaRouter;
 
@@ -36,7 +41,7 @@ async fn index() -> IndexTemplate {
 }
 
 #[derive(Template)]
-#[template(path="tictactoe.html")]
+#[template(path = "tictactoe.html")]
 struct TicTacToeTemplate {}
 async fn tictactoe() -> TicTacToeTemplate {
     TicTacToeTemplate {}
@@ -100,7 +105,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
         let f = rx.try_recv();
         tokio::time::sleep(Duration::from_millis(100)).await;
         match f {
-            Ok(input_string) => { 
+            Ok(input_string) => {
                 // todo change to log debug.
                 println!("Got an input string: {:?}", input_string);
                 if let Ok(command) = serde_json::from_str::<CommandInput>(&input_string) {
@@ -108,9 +113,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
                     println!("Got command from server");
                     let response_json = serde_json::to_string(&response).unwrap();
 
-                    sender
-                        .send(Message::Text(response_json.to_string()))
-                        .await;
+                    sender.send(Message::Text(response_json.to_string())).await;
 
                     if let StateResponse::Disconnect = response {
                         println!("Disconnecting");
@@ -119,13 +122,11 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<AppState>>) {
                 } else {
                     println!("failed to deserialize input");
                 }
-            },
-            // do nothing if we don't receive anything. 
-            Err(Empty) => {
             }
+            // do nothing if we don't receive anything.
+            Err(Empty) => {}
             Err(f) => {
                 println!("error occured: {:?}", f);
-                
             }
         }
     }
@@ -151,6 +152,7 @@ struct AppState {
 
 impl AppState {
     pub fn new(controller: ServoController) -> Self {
+
         Self {
             controller,
             client_connected: false,
@@ -194,33 +196,80 @@ async fn websocket_test(
     }
 }
 
-
-async fn image_handle_socket(
-    mut socket: WebSocket
+extern "C" fn video_cb(
+    dev: *mut freenect_device,
+    data: *mut ::std::os::raw::c_void,
+    timestamp: u32,
 ) {
-    println!("image handle socket got opened");
-    let width: u16 = 360;
-    let height: u16 = 480;
-    let size = width as usize * height as usize * 4;
-    // let mut image = Vec::with_capacity(size as usize);
+    println!("Video callback: {}", timestamp);
 
-    let j = image::open("myimage.jpg").unwrap();
-    let width = j.width();
-    let height = j.height();
+    // todo: calculate size based on the various dimensions.
+
+    let bytes = 921600;
+    let width = 640;
+    let height = 480;
+
+    unsafe {
+        let rgb_data: &[u8] = std::slice::from_raw_parts(data as *mut u8, bytes);
+        println!(
+            "Some data: ({}, {}, {})",
+            rgb_data[0], rgb_data[1], rgb_data[2]
+        );
+        // save_buffer_with_format("myimg.jpg", rgb_data, width, height, image::ColorType::Rgb8, image::ImageFormat::Jpeg).unwrap();
+    }
+
+    // The following three lines simply load a test image and convert it into buffer
+    // let (width, height) = (img.width(), img.height());
+    // let img_byte_vec = img.into_raw();
+    // // The next line is what you want
+}
+
+extern "C" fn depth_cb(
+    dev: *mut freenect_device,
+    data: *mut ::std::os::raw::c_void,
+    timestamp: u32,
+) {
+    println!("Video callback: {}", timestamp);
+
+    // todo: calculate size based on the various dimensions.
+    let bytes = 921600;
+    let width = 640;
+    let height = 480;
+
+    unsafe {
+        let rgb_data: &[u8] = std::slice::from_raw_parts(data as *mut u8, 100);
+        println!("Depth: {:?}", rgb_data);
+    }
+
+    // The following three lines simply load a test image and convert it into buffer
+    // let (width, height) = (img.width(), img.height());
+    // let img_byte_vec = img.into_raw();
+    // // The next line is what you want
+}
+
+async fn image_handle_socket(mut socket: WebSocket, state: Arc<Mutex<AppState>>) {
+    println!("image handle socket got opened");
+    let width: u32 = 360;
+    let height: u32 = 480;
+    let size = width as usize * height as usize * 4;
+    let mut image = Vec::with_capacity(size as usize);
+
+    // let j = image::open("myimage.jpg").unwrap();
+    // let width = j.width();
+    // let height = j.height();
     // let tmp = j.to_rgba8();
 
-    // let mut i = 0;
-    // while (i < size) {
-    //     image.push(0);
-    //     image.push(0);
-    //     image.push(0);
-    //     image.push(255);
-    //     i+= 4;
-    // }
+    let mut i = 0;
+    while (i < size) {
+        image.push(0);
+        image.push(0);
+        image.push(0);
+        image.push(255);
+        i+= 4;
+    }
 
-
-    let data = j.to_rgba8().to_vec();
-    println!("{:?}", &data[..32]);
+    // let data = j.to_rgba8().to_vec();
+    // println!("{:?}", &data[..32]);
 
     #[derive(Serialize, Deserialize)]
     struct tmp {
@@ -232,26 +281,27 @@ async fn image_handle_socket(
     println!("Width: {}, Height: {}", width, height);
 
     loop {
-        let data = j.to_rgba8().to_vec();
+        //let data = j.to_rgba8().to_vec();
+        let data = image.to_vec();
         let f = serde_json::to_string(&tmp {
             width,
             height,
-            data
-        }).unwrap();
-        println!("Sending data");
-        // todo: see if we can remove Text and use Binary. 
+            data,
+        })
+        .unwrap();
+        // todo: see if we can remove Text and use Binary.
         socket.send(Message::Text(f)).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    };
+    }
 }
-
 
 async fn websocket_image_data(
+    Extension(state): Extension<Arc<Mutex<AppState>>>,
     ws: WebSocketUpgrade,
 ) -> Response {
-    ws.on_upgrade(|socket| image_handle_socket(socket)).into_response()
+    ws.on_upgrade(|socket| image_handle_socket(socket, state))
+        .into_response()
 }
-
 
 fn app(state: Arc<Mutex<AppState>>) -> Router {
     Router::new()
@@ -263,9 +313,28 @@ fn app(state: Arc<Mutex<AppState>>) -> Router {
         .merge(SpaRouter::new("/static", "static_gen"))
 }
 
+fn image_process_thread() {
+
+    let kinect_context = FreenectContext::new();
+    kinect_context.set_led(freenect_led_options_LED_BLINK_GREEN);
+
+    let mut angle = 0.1;
+
+    let r = kinect_context.set_video_mode();
+    println!("Set video mode result: {}", r);
+
+    unsafe { freenect_set_video_callback(kinect_context.dev, Some(video_cb)) }
+
+    loop {
+        println!("kinect Loop");
+        let r = kinect_context.process_events();
+    }
+}
+
+
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-
     #[cfg(target_os = "windows")]
     let handle = can::WindowsCANHandle::open(0).unwrap();
 
@@ -277,13 +346,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         2,
     ))));
 
+
+    let image_thread = std::thread::spawn(image_process_thread);
+    
+
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
 
     let app = app(state);
 
-    axum::Server::bind(&"0.0.0.0:3000".parse()?)
+    axum::Server::bind(&"0.0.0.0:3001".parse()?)
         .serve(app.into_make_service())
         .await?;
 
@@ -427,7 +500,8 @@ mod tests {
             right: false,
         });
 
-        let expected_output = r#"{"t":"Servo","c":{"up":true,"down":false,"left":true,"right":false}}"#;
+        let expected_output =
+            r#"{"t":"Servo","c":{"up":true,"down":false,"left":true,"right":false}}"#;
         let k = serde_json::to_string(&f).unwrap();
         assert_eq!(k, expected_output);
     }
@@ -438,6 +512,5 @@ mod tests {
         let expected_output = r#"{"t":"Disconnect"}"#;
         let k = serde_json::to_string(&f).unwrap();
         assert_eq!(k, expected_output);
-
     }
 }
