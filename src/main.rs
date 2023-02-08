@@ -1,4 +1,5 @@
 use std::{sync::Arc, time::Duration};
+use std::ops::Deref;
 
 use kinect_control::freenect_sys::{
     freenect_device, freenect_led_options_LED_BLINK_GREEN, freenect_set_depth_callback,
@@ -216,7 +217,7 @@ extern "C" fn video_cb(
 ) {
     unsafe {
         let rgb_data: *mut u8 = data as *mut _;
-        let mut back_data = &mut back_rgb.lock().unwrap();
+        let mut back_data = &mut back_rgb_array.lock().unwrap();
         // todo: should really be able to do memcpy
         let mut i = 0;
         // todo: is this the fastest way to copy data? 
@@ -240,25 +241,29 @@ async fn image_handle_socket(mut socket: WebSocket, state: Arc<Mutex<AppState>>)
     }
 
     loop {
+        let start = std::time::Instant::now();
         let f = {
-            let back_d: &[u8] = &back_rgb.lock().unwrap();
+            let back_d: Vec<u8> = back_rgb_array.lock().unwrap().to_vec();
             tmp {
                 width: RGB_WIDTH,
                 height: RGB_HEIGHT,
-                data: back_d[..RGB_BYTES_COUNT].to_vec(),
+                data: back_d,
             }
         };
 
         println!("Sending data");
         // todo: see if we can remove Text and use Binary.
+        println!("Construct time: {:?}", start.elapsed());
+        let msg = serde_json::to_string(&f).unwrap();
+        println!("Pack time: {:?}", start.elapsed());
         let send_ret = socket
-            .send(Message::Text(serde_json::to_string(&f).unwrap()))
+            .send(Message::Text(msg))
             .await
             .unwrap();
         println!("Send ret: {:?}", send_ret);
-
+        println!("Send time: {:?}", start.elapsed());
         println!("Finished processing events");
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
     }
 }
 
@@ -284,6 +289,8 @@ use once_cell::sync::Lazy;
 
 // static back_rgb: Lazy<std::sync::Mutex<[u8; 640 * 480 * 4]>> = Lazy::new(|| std::sync::Mutex::new([0u8; 640 * 480 * 4]));
 // static front_rgb: Lazy<std::sync::Mutex<[u8; 640 * 480 * 4]>> = Lazy::new(|| std::sync::Mutex::new([0u8; 640 * 480 * 4]));
+
+static back_rgb_array: std::sync::Mutex<[u8; RGB_BYTES_COUNT]> = std::sync::Mutex::new([0u8; RGB_BYTES_COUNT]);
 
 static back_rgb: Lazy<std::sync::Mutex<Vec<u8>>> =
     Lazy::new(|| std::sync::Mutex::new(Vec::with_capacity(RGB_BYTES_COUNT)));
